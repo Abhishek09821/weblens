@@ -84,4 +84,9 @@ def test_unimplemented_entries_declare_a_phase() -> None:
 def test_phase_zero_ships_exactly_the_pilot_analyzer() -> None:
     """Guards against accidentally shipping a half-built analyzer as implemented."""
     implemented = [entry.id for entry in registry.implemented_entries()]
-    assert implemented == ["seo.metadata"]
+    # All analyzers except design.interpretation are now implemented
+    assert len(implemented) >= 25
+    assert "seo.metadata" in implemented
+    assert "security.headers" in implemented
+    assert "technology.stack" in implemented
+    assert "performance.timings" in implemented

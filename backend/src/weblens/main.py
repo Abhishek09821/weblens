@@ -16,7 +16,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from weblens.api.problems import register_exception_handlers
 from weblens.api.router import api_router, root_router
 from weblens.collection.base import Collector
-from weblens.collection.http_collector import HttpEvidenceCollector
+from weblens.collection.browser_collector import BrowserEvidenceCollector
 from weblens.collection.target import TargetGuard
 from weblens.config import Settings, get_settings
 from weblens.logging import configure_logging, get_logger
@@ -88,7 +88,7 @@ async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
     guard: TargetGuard = getattr(app.state, "guard_override", None) or TargetGuard(settings)
     store = InMemoryJobStore(settings)
     override: Collector | None = getattr(app.state, "collector_override", None)
-    collector: Collector = override or HttpEvidenceCollector(settings, guard)
+    collector: Collector = override or BrowserEvidenceCollector(settings, guard)
 
     app.state.target_guard = guard
     app.state.job_store = store
