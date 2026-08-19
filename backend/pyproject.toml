@@ -1,0 +1,75 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "weblens"
+version = "0.1.0"
+description = "WebLens - Website Technical Intelligence Analyzer (evidence-based, passive)"
+readme = "README.md"
+# Playwright does not advertise support for Python 3.14 yet; fail at install rather than at scan time.
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "fastapi==0.141.1",
+    "uvicorn[standard]==0.52.4",
+    "pydantic==2.13.4",
+    "pydantic-settings==2.15.0",
+    "httpx==0.28.1",
+    "playwright==1.62.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest==9.1.1",
+    "pytest-asyncio==1.4.0",
+    "respx==0.23.1",
+    "ruff==0.16.3",
+    "mypy==2.3.1",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+weblens = ["py.typed", "collection/probes/*.js", "vendor/axe/*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "C4", "SIM", "RUF", "ASYNC", "S", "PT"]
+ignore = [
+    "S104", # binding to all interfaces is a deployment decision, guarded by config defaults
+    "B008", # FastAPI Depends() in defaults is idiomatic
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "S105", "S106", "S108"]  # asserts, dummy credentials and URL paths
+"scripts/**" = ["S101"]
+
+[tool.mypy]
+python_version = "3.12"
+plugins = ["pydantic.mypy"]
+strict = true
+warn_unreachable = true
+disallow_any_explicit = false
+mypy_path = "src"
+packages = ["weblens"]
+
+[[tool.mypy.overrides]]
+module = ["tests.*"]
+disallow_untyped_defs = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+markers = [
+    "live: hits the public internet; opt in with WEBLENS_LIVE=1",
+]
+filterwarnings = ["error::DeprecationWarning:weblens.*"]
+
+[tool.coverage.run]
+source = ["weblens"]
+branch = true

@@ -1,0 +1,3944 @@
+{
+  "components": {
+    "schemas": {
+      "AccessibilityPayload": {
+        "additionalProperties": false,
+        "description": "Phase 5. No score, by design: violation counts are not a conformance measure.",
+        "properties": {
+          "axe": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AxeObservation"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "coverage_note": {
+            "default": "Automated rules detect a subset of WCAG issues. A clean result does not mean a site is accessible; conformance requires manual testing and expert review.",
+            "title": "Coverage Note",
+            "type": "string"
+          }
+        },
+        "title": "AccessibilityPayload",
+        "type": "object"
+      },
+      "AnalysisResult": {
+        "additionalProperties": false,
+        "properties": {
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/ScanError"
+            },
+            "title": "Errors",
+            "type": "array"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Limitations",
+            "type": "array"
+          },
+          "scan": {
+            "$ref": "#/components/schemas/ScanMetadata"
+          },
+          "schema_version": {
+            "default": "1.0",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "screenshots": {
+            "items": {
+              "$ref": "#/components/schemas/ScreenshotRef"
+            },
+            "title": "Screenshots",
+            "type": "array"
+          },
+          "sections": {
+            "$ref": "#/components/schemas/SectionSet"
+          },
+          "target": {
+            "$ref": "#/components/schemas/TargetInfo"
+          }
+        },
+        "required": [
+          "scan",
+          "target",
+          "sections"
+        ],
+        "title": "AnalysisResult",
+        "type": "object"
+      },
+      "AnalyzerCapability": {
+        "additionalProperties": false,
+        "properties": {
+          "depends_on": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Depends On",
+            "type": "array"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "implemented": {
+            "title": "Implemented",
+            "type": "boolean"
+          },
+          "planned_phase": {
+            "title": "Planned Phase",
+            "type": "integer"
+          },
+          "requires": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Requires",
+            "type": "array"
+          },
+          "section": {
+            "$ref": "#/components/schemas/SectionKey"
+          },
+          "version": {
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "section",
+          "version",
+          "description",
+          "implemented",
+          "requires",
+          "depends_on",
+          "planned_phase"
+        ],
+        "title": "AnalyzerCapability",
+        "type": "object"
+      },
+      "AnalyzerRun": {
+        "additionalProperties": false,
+        "description": "Outcome of one analyzer within one scan. Present even when it did not run.",
+        "properties": {
+          "duration_ms": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Ms"
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorCode"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error_detail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Detail"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "missing_evidence": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Missing Evidence",
+            "type": "array"
+          },
+          "status": {
+            "$ref": "#/components/schemas/AnalyzerRunStatus"
+          },
+          "version": {
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "version",
+          "status"
+        ],
+        "title": "AnalyzerRun",
+        "type": "object"
+      },
+      "AnalyzerRunStatus": {
+        "enum": [
+          "completed",
+          "failed",
+          "skipped",
+          "timeout",
+          "not_implemented"
+        ],
+        "title": "AnalyzerRunStatus",
+        "type": "string"
+      },
+      "AppliedCap": {
+        "additionalProperties": false,
+        "description": "A band ceiling triggered by a dominant observation.",
+        "properties": {
+          "cap": {
+            "$ref": "#/components/schemas/PostureBand"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "rule_id": {
+            "title": "Rule Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "rule_id",
+          "cap",
+          "reason"
+        ],
+        "title": "AppliedCap",
+        "type": "object"
+      },
+      "ArchitecturePayload": {
+        "additionalProperties": false,
+        "description": "Phase 3. Rendering strategy signals, platform indicators, runtime observations.",
+        "properties": {
+          "static_vs_rendered_element_delta": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Static Vs Rendered Element Delta"
+          }
+        },
+        "title": "ArchitecturePayload",
+        "type": "object"
+      },
+      "AxeNode": {
+        "additionalProperties": false,
+        "properties": {
+          "failure_summary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Failure Summary"
+          },
+          "html_excerpt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Html Excerpt"
+          },
+          "target": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Target",
+            "type": "array"
+          }
+        },
+        "title": "AxeNode",
+        "type": "object"
+      },
+      "AxeObservation": {
+        "additionalProperties": false,
+        "description": "Results from the vendored, pinned axe-core build.\n\n``engine_version`` is recorded because rule sets change between versions, so a stored\nresult is only interpretable against the engine that produced it.",
+        "properties": {
+          "engine_name": {
+            "default": "axe-core",
+            "title": "Engine Name",
+            "type": "string"
+          },
+          "engine_version": {
+            "title": "Engine Version",
+            "type": "string"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "inapplicable_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Inapplicable Count"
+          },
+          "incomplete_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Incomplete Count"
+          },
+          "passes_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Passes Count"
+          },
+          "rules_run_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rules Run Count"
+          },
+          "violations": {
+            "items": {
+              "$ref": "#/components/schemas/AxeViolation"
+            },
+            "title": "Violations",
+            "type": "array"
+          }
+        },
+        "required": [
+          "engine_version"
+        ],
+        "title": "AxeObservation",
+        "type": "object"
+      },
+      "AxeViolation": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "help_text": {
+            "title": "Help Text",
+            "type": "string"
+          },
+          "help_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Help Url"
+          },
+          "impact": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Impact"
+          },
+          "node_count": {
+            "title": "Node Count",
+            "type": "integer"
+          },
+          "rule_id": {
+            "title": "Rule Id",
+            "type": "string"
+          },
+          "sample_nodes": {
+            "items": {
+              "$ref": "#/components/schemas/AxeNode"
+            },
+            "title": "Sample Nodes",
+            "type": "array"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Tags",
+            "type": "array"
+          }
+        },
+        "required": [
+          "rule_id",
+          "description",
+          "help_text",
+          "node_count"
+        ],
+        "title": "AxeViolation",
+        "type": "object"
+      },
+      "BrowserHealth": {
+        "additionalProperties": false,
+        "properties": {
+          "available": {
+            "title": "Available",
+            "type": "boolean"
+          },
+          "detail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detail"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version"
+          }
+        },
+        "required": [
+          "available"
+        ],
+        "title": "BrowserHealth",
+        "type": "object"
+      },
+      "CapabilitiesResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "analyzers": {
+            "items": {
+              "$ref": "#/components/schemas/AnalyzerCapability"
+            },
+            "title": "Analyzers",
+            "type": "array"
+          },
+          "collection_mode": {
+            "title": "Collection Mode",
+            "type": "string"
+          },
+          "engine_version": {
+            "title": "Engine Version",
+            "type": "string"
+          },
+          "limits": {
+            "$ref": "#/components/schemas/ScanLimits"
+          },
+          "schema_version": {
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "sections": {
+            "items": {
+              "$ref": "#/components/schemas/SectionKey"
+            },
+            "title": "Sections",
+            "type": "array"
+          },
+          "stages": {
+            "items": {
+              "$ref": "#/components/schemas/StageCapability"
+            },
+            "title": "Stages",
+            "type": "array"
+          }
+        },
+        "required": [
+          "engine_version",
+          "schema_version",
+          "collection_mode",
+          "sections",
+          "analyzers",
+          "stages",
+          "limits"
+        ],
+        "title": "CapabilitiesResponse",
+        "type": "object"
+      },
+      "Confidence": {
+        "description": "Internal reasoning metadata.\n\nUsed only to derive :class:`FindingStatus`. Never rendered next to a claim: a\npercentage or grade beside an uncertain statement reads as authority and launders a\nguess into a fact.",
+        "enum": [
+          "definitive",
+          "strong",
+          "moderate",
+          "weak"
+        ],
+        "title": "Confidence",
+        "type": "string"
+      },
+      "DesignPayload": {
+        "additionalProperties": false,
+        "description": "Phase 4. Palette, typography, spacing/radius/shadow scales, layout, media, motion.\n\n``coverage`` is declared now because every design claim must be reported alongside the\nsample it came from.",
+        "properties": {
+          "coverage": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SampleCoverage"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "title": "DesignPayload",
+        "type": "object"
+      },
+      "DetectedProduct": {
+        "additionalProperties": false,
+        "description": "A technology detected from observable signals.",
+        "properties": {
+          "categories": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Categories",
+            "type": "array"
+          },
+          "finding_id": {
+            "title": "Finding Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "signal_summary": {
+            "description": "Human-readable list of the signals that matched.",
+            "items": {
+              "type": "string"
+            },
+            "title": "Signal Summary",
+            "type": "array"
+          },
+          "status": {
+            "$ref": "#/components/schemas/FindingStatus"
+          },
+          "version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Only set when a signature captured a version explicitly.",
+            "title": "Version"
+          }
+        },
+        "required": [
+          "name",
+          "status",
+          "finding_id"
+        ],
+        "title": "DetectedProduct",
+        "type": "object"
+      },
+      "DomainSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "host": {
+            "title": "Host",
+            "type": "string"
+          },
+          "is_third_party": {
+            "title": "Is Third Party",
+            "type": "boolean"
+          },
+          "request_count": {
+            "title": "Request Count",
+            "type": "integer"
+          },
+          "transfer_bytes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Transfer Bytes"
+          }
+        },
+        "required": [
+          "host",
+          "request_count",
+          "is_third_party"
+        ],
+        "title": "DomainSummary",
+        "type": "object"
+      },
+      "DroppedClaim": {
+        "additionalProperties": false,
+        "properties": {
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text",
+          "reason"
+        ],
+        "title": "DroppedClaim",
+        "type": "object"
+      },
+      "ErrorCode": {
+        "description": "Machine-readable error identity, shared by problem responses and scan errors.",
+        "enum": [
+          "INVALID_REQUEST",
+          "INVALID_URL",
+          "BLOCKED_TARGET",
+          "ROBOTS_DISALLOWED",
+          "DNS_FAILURE",
+          "CONNECT_FAILURE",
+          "TLS_FAILURE",
+          "NAVIGATION_TIMEOUT",
+          "BROWSER_UNAVAILABLE",
+          "ACCESS_RESTRICTED",
+          "BUDGET_EXHAUSTED",
+          "MISSING_EVIDENCE",
+          "ANALYZER_FAILED",
+          "ANALYZER_TIMEOUT",
+          "SCAN_NOT_FOUND",
+          "RESULT_EXPIRED",
+          "SCAN_IN_PROGRESS",
+          "RATE_LIMITED",
+          "AI_DISABLED",
+          "INTERNAL_ERROR"
+        ],
+        "title": "ErrorCode",
+        "type": "string"
+      },
+      "EvidenceKind": {
+        "description": "What kind of observation an :class:`~weblens.domain.evidence.EvidenceRef` points at.",
+        "enum": [
+          "http_header",
+          "http_status",
+          "redirect_hop",
+          "html_element",
+          "html_attribute",
+          "meta_tag",
+          "inline_script",
+          "script_url",
+          "stylesheet_url",
+          "runtime_global",
+          "computed_style",
+          "loaded_font",
+          "cookie",
+          "tls_connection",
+          "dns_record",
+          "robots_directive",
+          "network_request",
+          "performance_entry",
+          "axe_result",
+          "console_message",
+          "dom_measurement"
+        ],
+        "title": "EvidenceKind",
+        "type": "string"
+      },
+      "EvidenceRef": {
+        "additionalProperties": false,
+        "description": "A pointer to the observation that supports a finding, with a quotable excerpt.\n\nDeliberately self-contained rather than an index into a separate evidence store:\nfindings travel alone into report files and IndexedDB, so each carries the bounded,\nsanitized excerpt it needs. ``RawEvidence`` itself is never returned by the API.",
+        "properties": {
+          "detail": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "title": "Detail",
+            "type": "object"
+          },
+          "excerpt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Sanitized, truncated raw value as observed.",
+            "title": "Excerpt"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/EvidenceKind"
+          },
+          "location": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Absolute URL, CSS selector, or header name.",
+            "title": "Location"
+          },
+          "source": {
+            "description": "Machine path into the evidence, e.g. 'http.headers.content-security-policy'.",
+            "title": "Source",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "source"
+        ],
+        "title": "EvidenceRef",
+        "type": "object"
+      },
+      "ExcludedRule": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "outcome": {
+            "$ref": "#/components/schemas/RuleOutcome",
+            "description": "Either not_applicable or unknown."
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "outcome",
+          "reason"
+        ],
+        "title": "ExcludedRule",
+        "type": "object"
+      },
+      "ExplainRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "audience": {
+            "default": "engineer",
+            "pattern": "^(engineer|stakeholder)$",
+            "title": "Audience",
+            "type": "string"
+          },
+          "scan_id": {
+            "title": "Scan Id",
+            "type": "string"
+          },
+          "sections": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/SectionKey"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sections"
+          }
+        },
+        "required": [
+          "scan_id"
+        ],
+        "title": "ExplainRequest",
+        "type": "object"
+      },
+      "ExplainResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "dropped_claims": {
+            "description": "Statements removed because they could not be traced to a finding.",
+            "items": {
+              "$ref": "#/components/schemas/DroppedClaim"
+            },
+            "title": "Dropped Claims",
+            "type": "array"
+          },
+          "generated_at": {
+            "title": "Generated At",
+            "type": "string"
+          },
+          "model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model"
+          },
+          "narratives": {
+            "items": {
+              "$ref": "#/components/schemas/Narrative"
+            },
+            "title": "Narratives",
+            "type": "array"
+          },
+          "provider": {
+            "title": "Provider",
+            "type": "string"
+          },
+          "scan_id": {
+            "title": "Scan Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "scan_id",
+          "provider",
+          "generated_at"
+        ],
+        "title": "ExplainResponse",
+        "type": "object"
+      },
+      "Finding": {
+        "additionalProperties": false,
+        "description": "One structured conclusion about one property of the target.",
+        "properties": {
+          "category": {
+            "description": "Grouping within the section, e.g. 'response_headers'.",
+            "title": "Category",
+            "type": "string"
+          },
+          "confidence": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Confidence"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Internal reasoning metadata used to derive status. Not a user-facing qualifier - see docs/blueprint/decisions.md D5."
+          },
+          "details": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                },
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "title": "Details",
+            "type": "object"
+          },
+          "detected": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "None when the notion of detection does not apply.",
+            "title": "Detected"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/EvidenceRef"
+            },
+            "title": "Evidence",
+            "type": "array"
+          },
+          "id": {
+            "description": "'<analyzer_id>:<slug>', unique within a result.",
+            "title": "Id",
+            "type": "string"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Limitations",
+            "type": "array"
+          },
+          "name": {
+            "description": "Human-readable label.",
+            "title": "Name",
+            "type": "string"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Required for every negative status: why not.",
+            "title": "Reason"
+          },
+          "source": {
+            "description": "Id of the analyzer that produced this finding.",
+            "title": "Source",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/FindingStatus"
+          },
+          "unit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "'ms', 'bytes', 'px', '%', 'days'.",
+            "title": "Unit"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          },
+          "values": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Values",
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "category",
+          "name",
+          "status",
+          "source"
+        ],
+        "title": "Finding",
+        "type": "object"
+      },
+      "FindingStatus": {
+        "description": "User-facing certainty of a finding.\n\nThe three negative states are deliberately distinct: they answer different questions\nand conflating them is how a tool starts making things up.",
+        "enum": [
+          "verified",
+          "inferred",
+          "not_detected",
+          "not_determinable",
+          "unable_to_verify"
+        ],
+        "title": "FindingStatus",
+        "type": "string"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "HeaderEntry": {
+        "additionalProperties": false,
+        "description": "One response header. Duplicates are preserved as separate entries.\n\nCollapsing duplicate headers loses information that matters (multiple ``Set-Cookie``\nlines, repeated ``Content-Security-Policy``), so the list keeps them intact.",
+        "properties": {
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "value": {
+            "title": "Value",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "value"
+        ],
+        "title": "HeaderEntry",
+        "type": "object"
+      },
+      "HeaderObservationSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "present": {
+            "title": "Present",
+            "type": "boolean"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          }
+        },
+        "required": [
+          "name",
+          "present"
+        ],
+        "title": "HeaderObservationSummary",
+        "type": "object"
+      },
+      "HealthResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "active_scans": {
+            "title": "Active Scans",
+            "type": "integer"
+          },
+          "browser": {
+            "$ref": "#/components/schemas/BrowserHealth"
+          },
+          "engine_version": {
+            "title": "Engine Version",
+            "type": "string"
+          },
+          "schema_version": {
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "uptime_seconds": {
+            "title": "Uptime Seconds",
+            "type": "number"
+          }
+        },
+        "required": [
+          "status",
+          "engine_version",
+          "schema_version",
+          "uptime_seconds",
+          "browser",
+          "active_scans"
+        ],
+        "title": "HealthResponse",
+        "type": "object"
+      },
+      "HreflangEntry": {
+        "additionalProperties": false,
+        "properties": {
+          "href": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Href"
+          },
+          "hreflang": {
+            "title": "Hreflang",
+            "type": "string"
+          }
+        },
+        "required": [
+          "hreflang"
+        ],
+        "title": "HreflangEntry",
+        "type": "object"
+      },
+      "IndexabilityObservation": {
+        "additionalProperties": false,
+        "description": "Phase 3.",
+        "properties": {
+          "canonical_is_self_referential": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Canonical Is Self Referential"
+          },
+          "redirect_hop_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Redirect Hop Count"
+          },
+          "robots_txt_allowed": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Robots Txt Allowed"
+          },
+          "sitemaps": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Sitemaps",
+            "type": "array"
+          },
+          "x_robots_tag": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "X Robots Tag"
+          }
+        },
+        "title": "IndexabilityObservation",
+        "type": "object"
+      },
+      "Interpretation": {
+        "additionalProperties": false,
+        "description": "A subjective statement derived from findings, kept structurally separate from them.\n\nInterpretations cannot be built without citing findings, and only analyzers whose job\nis interpretation emit them. That is how \"observed fact\" and \"our reading of it\" stay\napart in the API, the UI, and every generated report.",
+        "properties": {
+          "basis": {
+            "description": "Finding ids this reading is derived from.",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "title": "Basis",
+            "type": "array"
+          },
+          "caveat": {
+            "default": "Interpretation derived from observed values, not a directly observed fact.",
+            "title": "Caveat",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          },
+          "statement": {
+            "title": "Statement",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "statement",
+          "basis",
+          "source"
+        ],
+        "title": "Interpretation",
+        "type": "object"
+      },
+      "KeyValueObservation": {
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          }
+        },
+        "required": [
+          "key"
+        ],
+        "title": "KeyValueObservation",
+        "type": "object"
+      },
+      "LongTaskEntry": {
+        "additionalProperties": false,
+        "properties": {
+          "duration_ms": {
+            "title": "Duration Ms",
+            "type": "number"
+          },
+          "start_ms": {
+            "title": "Start Ms",
+            "type": "number"
+          }
+        },
+        "required": [
+          "start_ms",
+          "duration_ms"
+        ],
+        "title": "LongTaskEntry",
+        "type": "object"
+      },
+      "MetadataObservation": {
+        "additionalProperties": false,
+        "description": "Document metadata as served. Lengths are reported because they are actionable.",
+        "properties": {
+          "canonical": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Canonical"
+          },
+          "charset": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Charset"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "description_length": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description Length"
+          },
+          "favicons": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Favicons",
+            "type": "array"
+          },
+          "h1_texts": {
+            "items": {
+              "type": "string"
+            },
+            "title": "H1 Texts",
+            "type": "array"
+          },
+          "hreflang": {
+            "items": {
+              "$ref": "#/components/schemas/HreflangEntry"
+            },
+            "title": "Hreflang",
+            "type": "array"
+          },
+          "lang": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lang"
+          },
+          "open_graph": {
+            "items": {
+              "$ref": "#/components/schemas/KeyValueObservation"
+            },
+            "title": "Open Graph",
+            "type": "array"
+          },
+          "robots_meta": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Robots Meta"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "title_length": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title Length"
+          },
+          "twitter": {
+            "items": {
+              "$ref": "#/components/schemas/KeyValueObservation"
+            },
+            "title": "Twitter",
+            "type": "array"
+          },
+          "viewport_meta": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Viewport Meta"
+          }
+        },
+        "title": "MetadataObservation",
+        "type": "object"
+      },
+      "Narrative": {
+        "additionalProperties": false,
+        "properties": {
+          "grounded_in": {
+            "description": "Finding ids the text cites. Every sentence must cite at least one.",
+            "items": {
+              "type": "string"
+            },
+            "title": "Grounded In",
+            "type": "array"
+          },
+          "section": {
+            "$ref": "#/components/schemas/SectionKey"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "section",
+          "text",
+          "grounded_in"
+        ],
+        "title": "Narrative",
+        "type": "object"
+      },
+      "NetworkPayload": {
+        "additionalProperties": false,
+        "description": "Phase 3.",
+        "properties": {
+          "by_domain": {
+            "items": {
+              "$ref": "#/components/schemas/DomainSummary"
+            },
+            "title": "By Domain",
+            "type": "array"
+          },
+          "cap_hit": {
+            "default": false,
+            "title": "Cap Hit",
+            "type": "boolean"
+          },
+          "requests": {
+            "items": {
+              "$ref": "#/components/schemas/NetworkRequestRecord"
+            },
+            "title": "Requests",
+            "type": "array"
+          }
+        },
+        "title": "NetworkPayload",
+        "type": "object"
+      },
+      "NetworkRequestRecord": {
+        "additionalProperties": false,
+        "description": "One request/response pair observed during navigation.\n\n``Set-Cookie`` values and authorization headers are never captured; only the selected\ncache/CORS/security headers listed by the collector reach this record.",
+        "properties": {
+          "decoded_bytes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decoded Bytes"
+          },
+          "duration_ms": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Ms"
+          },
+          "failed": {
+            "default": false,
+            "title": "Failed",
+            "type": "boolean"
+          },
+          "failure_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Failure Text"
+          },
+          "from_cache": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "From Cache"
+          },
+          "host": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Host"
+          },
+          "initiator_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Initiator Type"
+          },
+          "is_same_origin": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Same Origin"
+          },
+          "is_same_site": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Same Site"
+          },
+          "method": {
+            "title": "Method",
+            "type": "string"
+          },
+          "mime_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mime Type"
+          },
+          "protocol": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Protocol"
+          },
+          "resource_type": {
+            "title": "Resource Type",
+            "type": "string"
+          },
+          "selected_headers": {
+            "items": {
+              "$ref": "#/components/schemas/HeaderEntry"
+            },
+            "title": "Selected Headers",
+            "type": "array"
+          },
+          "sets_cookie": {
+            "default": false,
+            "title": "Sets Cookie",
+            "type": "boolean"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          },
+          "transfer_bytes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Transfer Bytes"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url",
+          "method",
+          "resource_type"
+        ],
+        "title": "NetworkRequestRecord",
+        "type": "object"
+      },
+      "PerformanceObservation": {
+        "additionalProperties": false,
+        "description": "Single cold lab run at a bounded settle point. Not field data (see L-PERF-01).",
+        "properties": {
+          "cumulative_layout_shift": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cumulative Layout Shift"
+          },
+          "decoded_bytes_total": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decoded Bytes Total"
+          },
+          "dom_content_loaded_ms": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dom Content Loaded Ms"
+          },
+          "dom_interactive_ms": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dom Interactive Ms"
+          },
+          "first_contentful_paint_ms": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "First Contentful Paint Ms"
+          },
+          "largest_contentful_paint_element": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Largest Contentful Paint Element"
+          },
+          "largest_contentful_paint_ms": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Largest Contentful Paint Ms"
+          },
+          "load_event_ms": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Load Event Ms"
+          },
+          "long_tasks": {
+            "items": {
+              "$ref": "#/components/schemas/LongTaskEntry"
+            },
+            "title": "Long Tasks",
+            "type": "array"
+          },
+          "render_blocking_request_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Render Blocking Request Count"
+          },
+          "request_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Request Count"
+          },
+          "total_blocking_estimate_ms": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Blocking Estimate Ms"
+          },
+          "transfer_bytes_total": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Transfer Bytes Total"
+          },
+          "ttfb_ms": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ttfb Ms"
+          }
+        },
+        "title": "PerformanceObservation",
+        "type": "object"
+      },
+      "PerformancePayload": {
+        "additionalProperties": false,
+        "description": "Phase 5. Run context lives on scan metadata and applies to every metric here.",
+        "properties": {
+          "timings": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PerformanceObservation"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "title": "PerformancePayload",
+        "type": "object"
+      },
+      "PostureBand": {
+        "description": "Descriptive bands. Never 'secure'/'insecure' - see docs/blueprint/11.",
+        "enum": [
+          "strong",
+          "good",
+          "moderate",
+          "limited",
+          "minimal"
+        ],
+        "title": "PostureBand",
+        "type": "string"
+      },
+      "ProblemDetail": {
+        "additionalProperties": false,
+        "description": "RFC 9457 problem document.",
+        "properties": {
+          "code": {
+            "$ref": "#/components/schemas/ErrorCode"
+          },
+          "detail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detail"
+          },
+          "instance": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Instance"
+          },
+          "retryable": {
+            "default": false,
+            "title": "Retryable",
+            "type": "boolean"
+          },
+          "status": {
+            "title": "Status",
+            "type": "integer"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "type": {
+            "description": "Stable URI identifying the problem kind.",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "status",
+          "code"
+        ],
+        "title": "ProblemDetail",
+        "type": "object"
+      },
+      "RedirectHop": {
+        "additionalProperties": false,
+        "properties": {
+          "location": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Location"
+          },
+          "scheme": {
+            "title": "Scheme",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "integer"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url",
+          "status",
+          "scheme"
+        ],
+        "title": "RedirectHop",
+        "type": "object"
+      },
+      "RobotsObservation": {
+        "additionalProperties": false,
+        "properties": {
+          "allowed": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Allowed"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "fetched": {
+            "title": "Fetched",
+            "type": "boolean"
+          },
+          "matched_directive": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Matched Directive"
+          },
+          "sitemaps": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Sitemaps",
+            "type": "array"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          },
+          "user_agent_group": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Agent Group"
+          }
+        },
+        "required": [
+          "url",
+          "fetched"
+        ],
+        "title": "RobotsObservation",
+        "type": "object"
+      },
+      "RuleOutcome": {
+        "description": "Outcome of one security scoring rule.",
+        "enum": [
+          "pass",
+          "partial",
+          "fail",
+          "not_applicable",
+          "unknown"
+        ],
+        "title": "RuleOutcome",
+        "type": "string"
+      },
+      "RunContext": {
+        "additionalProperties": false,
+        "description": "The conditions the measurements were taken under.\n\nPerformance and design numbers are meaningless without this, so it travels with every\nresult and is printed in every report.",
+        "properties": {
+          "browser_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Browser Name"
+          },
+          "browser_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Browser Version"
+          },
+          "collection_mode": {
+            "description": "'http_only' or 'browser'. Tells the reader which evidence base was used.",
+            "title": "Collection Mode",
+            "type": "string"
+          },
+          "cpu_throttling": {
+            "default": "none",
+            "title": "Cpu Throttling",
+            "type": "string"
+          },
+          "device_scale_factor": {
+            "default": 1.0,
+            "title": "Device Scale Factor",
+            "type": "number"
+          },
+          "locale": {
+            "default": "en-US",
+            "title": "Locale",
+            "type": "string"
+          },
+          "network_throttling": {
+            "default": "none",
+            "title": "Network Throttling",
+            "type": "string"
+          },
+          "settle_reached": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Settle Reached"
+          },
+          "timezone": {
+            "default": "UTC",
+            "title": "Timezone",
+            "type": "string"
+          },
+          "user_agent": {
+            "default": "WebLens/0.1.0 (+https://github.com/weblens; passive website analyzer; respects robots.txt)",
+            "title": "User Agent",
+            "type": "string"
+          },
+          "viewport": {
+            "$ref": "#/components/schemas/Viewport"
+          },
+          "wait_strategy": {
+            "description": "e.g. 'domcontentloaded+network_idle(5000ms)'.",
+            "title": "Wait Strategy",
+            "type": "string"
+          }
+        },
+        "required": [
+          "wait_strategy",
+          "collection_mode"
+        ],
+        "title": "RunContext",
+        "type": "object"
+      },
+      "SampleCoverage": {
+        "additionalProperties": false,
+        "description": "How much of the page the style sample actually covers.\n\nReported alongside every design finding: a claim about \"the\" border radius of a page\nmeans little without knowing it came from 1500 of 40000 elements.",
+        "properties": {
+          "cap_hit": {
+            "default": false,
+            "title": "Cap Hit",
+            "type": "boolean"
+          },
+          "elements_sampled": {
+            "title": "Elements Sampled",
+            "type": "integer"
+          },
+          "elements_total": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Elements Total"
+          }
+        },
+        "required": [
+          "elements_sampled"
+        ],
+        "title": "SampleCoverage",
+        "type": "object"
+      },
+      "ScanAcceptedResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "links": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Links",
+            "type": "object"
+          },
+          "normalized_url": {
+            "title": "Normalized Url",
+            "type": "string"
+          },
+          "requested_url": {
+            "title": "Requested Url",
+            "type": "string"
+          },
+          "scan_id": {
+            "title": "Scan Id",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ScanStatus"
+          }
+        },
+        "required": [
+          "scan_id",
+          "status",
+          "requested_url",
+          "normalized_url",
+          "created_at",
+          "links"
+        ],
+        "title": "ScanAcceptedResponse",
+        "type": "object"
+      },
+      "ScanError": {
+        "additionalProperties": false,
+        "description": "A failure recorded on a result rather than raised to the caller.",
+        "properties": {
+          "code": {
+            "$ref": "#/components/schemas/ErrorCode"
+          },
+          "detail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detail"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "occurred_at": {
+            "format": "date-time",
+            "title": "Occurred At",
+            "type": "string"
+          },
+          "scope": {
+            "enum": [
+              "scan",
+              "stage",
+              "analyzer"
+            ],
+            "title": "Scope",
+            "type": "string"
+          },
+          "subject": {
+            "description": "Stage key or analyzer id the failure belongs to.",
+            "title": "Subject",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "scope",
+          "subject",
+          "message"
+        ],
+        "title": "ScanError",
+        "type": "object"
+      },
+      "ScanJobState": {
+        "additionalProperties": false,
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "problem": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProblemDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "progress": {
+            "$ref": "#/components/schemas/StageProgress"
+          },
+          "requested_url": {
+            "title": "Requested Url",
+            "type": "string"
+          },
+          "scan_id": {
+            "title": "Scan Id",
+            "type": "string"
+          },
+          "stages": {
+            "items": {
+              "$ref": "#/components/schemas/StageRun"
+            },
+            "title": "Stages",
+            "type": "array"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ScanStatus"
+          }
+        },
+        "required": [
+          "scan_id",
+          "status",
+          "requested_url"
+        ],
+        "title": "ScanJobState",
+        "type": "object"
+      },
+      "ScanLimits": {
+        "additionalProperties": false,
+        "properties": {
+          "analyzer_timeout_ms": {
+            "title": "Analyzer Timeout Ms",
+            "type": "integer"
+          },
+          "max_concurrent_scans": {
+            "title": "Max Concurrent Scans",
+            "type": "integer"
+          },
+          "max_concurrent_scans_per_host": {
+            "title": "Max Concurrent Scans Per Host",
+            "type": "integer"
+          },
+          "max_redirects": {
+            "title": "Max Redirects",
+            "type": "integer"
+          },
+          "min_host_interval_seconds": {
+            "title": "Min Host Interval Seconds",
+            "type": "number"
+          },
+          "navigation_timeout_ms": {
+            "title": "Navigation Timeout Ms",
+            "type": "integer"
+          },
+          "probe_http_downgrade": {
+            "title": "Probe Http Downgrade",
+            "type": "boolean"
+          },
+          "respect_robots": {
+            "title": "Respect Robots",
+            "type": "boolean"
+          },
+          "result_ttl_seconds": {
+            "title": "Result Ttl Seconds",
+            "type": "integer"
+          },
+          "total_scan_budget_ms": {
+            "title": "Total Scan Budget Ms",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "navigation_timeout_ms",
+          "total_scan_budget_ms",
+          "analyzer_timeout_ms",
+          "result_ttl_seconds",
+          "max_concurrent_scans",
+          "max_concurrent_scans_per_host",
+          "min_host_interval_seconds",
+          "max_redirects",
+          "respect_robots",
+          "probe_http_downgrade"
+        ],
+        "title": "ScanLimits",
+        "type": "object"
+      },
+      "ScanMetadata": {
+        "additionalProperties": false,
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "duration_ms": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Ms"
+          },
+          "engine_version": {
+            "default": "0.1.0",
+            "title": "Engine Version",
+            "type": "string"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "options": {
+            "$ref": "#/components/schemas/ScanOptions"
+          },
+          "run_context": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RunContext"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "scan_id": {
+            "title": "Scan Id",
+            "type": "string"
+          },
+          "schema_version": {
+            "default": "1.0",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "stages": {
+            "items": {
+              "$ref": "#/components/schemas/StageRun"
+            },
+            "title": "Stages",
+            "type": "array"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ScanStatus"
+          }
+        },
+        "required": [
+          "scan_id",
+          "status",
+          "created_at",
+          "options"
+        ],
+        "title": "ScanMetadata",
+        "type": "object"
+      },
+      "ScanOptions": {
+        "additionalProperties": false,
+        "description": "Per-scan options. ``extra='forbid'`` so an option typo is a 422, not a silent no-op.",
+        "properties": {
+          "include_full_page_screenshot": {
+            "default": false,
+            "title": "Include Full Page Screenshot",
+            "type": "boolean"
+          },
+          "include_screenshot": {
+            "default": true,
+            "title": "Include Screenshot",
+            "type": "boolean"
+          },
+          "responsive_widths": {
+            "items": {
+              "type": "integer"
+            },
+            "maxItems": 6,
+            "title": "Responsive Widths",
+            "type": "array"
+          },
+          "sections": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/SectionKey"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Restrict analysis to these sections. None means all.",
+            "title": "Sections"
+          },
+          "viewport": {
+            "$ref": "#/components/schemas/Viewport"
+          }
+        },
+        "title": "ScanOptions",
+        "type": "object"
+      },
+      "ScanRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "options": {
+            "$ref": "#/components/schemas/ScanOptions"
+          },
+          "url": {
+            "description": "Public http(s) URL. Normalized and guarded server-side.",
+            "maxLength": 2048,
+            "minLength": 3,
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "title": "ScanRequest",
+        "type": "object"
+      },
+      "ScanStatus": {
+        "enum": [
+          "queued",
+          "running",
+          "completed",
+          "completed_with_errors",
+          "failed",
+          "cancelled"
+        ],
+        "title": "ScanStatus",
+        "type": "string"
+      },
+      "ScreenshotRef": {
+        "additionalProperties": false,
+        "description": "Screenshot metadata plus inline data.\n\nThe client moves the bytes into its own IndexedDB store as a Blob and does not keep them\nin the result record, which is why this is a separate top-level list rather than being\nburied inside the design payload.",
+        "properties": {
+          "data_base64": {
+            "title": "Data Base64",
+            "type": "string"
+          },
+          "height": {
+            "title": "Height",
+            "type": "integer"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "mime_type": {
+            "default": "image/png",
+            "title": "Mime Type",
+            "type": "string"
+          },
+          "width": {
+            "title": "Width",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "label",
+          "width",
+          "height",
+          "data_base64"
+        ],
+        "title": "ScreenshotRef",
+        "type": "object"
+      },
+      "SectionKey": {
+        "description": "The eight report sections. Order here is the canonical presentation order.",
+        "enum": [
+          "design",
+          "technology",
+          "security",
+          "performance",
+          "accessibility",
+          "seo",
+          "architecture",
+          "network"
+        ],
+        "title": "SectionKey",
+        "type": "string"
+      },
+      "SectionMeta": {
+        "additionalProperties": false,
+        "properties": {
+          "analyzers": {
+            "items": {
+              "$ref": "#/components/schemas/AnalyzerRun"
+            },
+            "title": "Analyzers",
+            "type": "array"
+          },
+          "key": {
+            "$ref": "#/components/schemas/SectionKey"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Limitations",
+            "type": "array"
+          },
+          "status": {
+            "$ref": "#/components/schemas/SectionStatus"
+          },
+          "unavailable_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unavailable Reason"
+          }
+        },
+        "required": [
+          "key",
+          "status"
+        ],
+        "title": "SectionMeta",
+        "type": "object"
+      },
+      "SectionSet": {
+        "additionalProperties": false,
+        "description": "All eight sections, as explicit fields so both sides of the wire stay typed.",
+        "properties": {
+          "accessibility": {
+            "$ref": "#/components/schemas/Section_AccessibilityPayload_"
+          },
+          "architecture": {
+            "$ref": "#/components/schemas/Section_ArchitecturePayload_"
+          },
+          "design": {
+            "$ref": "#/components/schemas/Section_DesignPayload_"
+          },
+          "network": {
+            "$ref": "#/components/schemas/Section_NetworkPayload_"
+          },
+          "performance": {
+            "$ref": "#/components/schemas/Section_PerformancePayload_"
+          },
+          "security": {
+            "$ref": "#/components/schemas/Section_SecurityPayload_"
+          },
+          "seo": {
+            "$ref": "#/components/schemas/Section_SeoPayload_"
+          },
+          "technology": {
+            "$ref": "#/components/schemas/Section_TechnologyPayload_"
+          }
+        },
+        "required": [
+          "design",
+          "technology",
+          "security",
+          "performance",
+          "accessibility",
+          "seo",
+          "architecture",
+          "network"
+        ],
+        "title": "SectionSet",
+        "type": "object"
+      },
+      "SectionStatus": {
+        "enum": [
+          "complete",
+          "partial",
+          "unavailable",
+          "not_implemented",
+          "skipped"
+        ],
+        "title": "SectionStatus",
+        "type": "string"
+      },
+      "Section_AccessibilityPayload_": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AccessibilityPayload"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "findings": {
+            "items": {
+              "$ref": "#/components/schemas/Finding"
+            },
+            "title": "Findings",
+            "type": "array"
+          },
+          "interpretations": {
+            "items": {
+              "$ref": "#/components/schemas/Interpretation"
+            },
+            "title": "Interpretations",
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/SectionMeta"
+          }
+        },
+        "required": [
+          "meta"
+        ],
+        "title": "Section[AccessibilityPayload]",
+        "type": "object"
+      },
+      "Section_ArchitecturePayload_": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ArchitecturePayload"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "findings": {
+            "items": {
+              "$ref": "#/components/schemas/Finding"
+            },
+            "title": "Findings",
+            "type": "array"
+          },
+          "interpretations": {
+            "items": {
+              "$ref": "#/components/schemas/Interpretation"
+            },
+            "title": "Interpretations",
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/SectionMeta"
+          }
+        },
+        "required": [
+          "meta"
+        ],
+        "title": "Section[ArchitecturePayload]",
+        "type": "object"
+      },
+      "Section_DesignPayload_": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DesignPayload"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "findings": {
+            "items": {
+              "$ref": "#/components/schemas/Finding"
+            },
+            "title": "Findings",
+            "type": "array"
+          },
+          "interpretations": {
+            "items": {
+              "$ref": "#/components/schemas/Interpretation"
+            },
+            "title": "Interpretations",
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/SectionMeta"
+          }
+        },
+        "required": [
+          "meta"
+        ],
+        "title": "Section[DesignPayload]",
+        "type": "object"
+      },
+      "Section_NetworkPayload_": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/NetworkPayload"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "findings": {
+            "items": {
+              "$ref": "#/components/schemas/Finding"
+            },
+            "title": "Findings",
+            "type": "array"
+          },
+          "interpretations": {
+            "items": {
+              "$ref": "#/components/schemas/Interpretation"
+            },
+            "title": "Interpretations",
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/SectionMeta"
+          }
+        },
+        "required": [
+          "meta"
+        ],
+        "title": "Section[NetworkPayload]",
+        "type": "object"
+      },
+      "Section_PerformancePayload_": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PerformancePayload"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "findings": {
+            "items": {
+              "$ref": "#/components/schemas/Finding"
+            },
+            "title": "Findings",
+            "type": "array"
+          },
+          "interpretations": {
+            "items": {
+              "$ref": "#/components/schemas/Interpretation"
+            },
+            "title": "Interpretations",
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/SectionMeta"
+          }
+        },
+        "required": [
+          "meta"
+        ],
+        "title": "Section[PerformancePayload]",
+        "type": "object"
+      },
+      "Section_SecurityPayload_": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SecurityPayload"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "findings": {
+            "items": {
+              "$ref": "#/components/schemas/Finding"
+            },
+            "title": "Findings",
+            "type": "array"
+          },
+          "interpretations": {
+            "items": {
+              "$ref": "#/components/schemas/Interpretation"
+            },
+            "title": "Interpretations",
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/SectionMeta"
+          }
+        },
+        "required": [
+          "meta"
+        ],
+        "title": "Section[SecurityPayload]",
+        "type": "object"
+      },
+      "Section_SeoPayload_": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SeoPayload"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "findings": {
+            "items": {
+              "$ref": "#/components/schemas/Finding"
+            },
+            "title": "Findings",
+            "type": "array"
+          },
+          "interpretations": {
+            "items": {
+              "$ref": "#/components/schemas/Interpretation"
+            },
+            "title": "Interpretations",
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/SectionMeta"
+          }
+        },
+        "required": [
+          "meta"
+        ],
+        "title": "Section[SeoPayload]",
+        "type": "object"
+      },
+      "Section_TechnologyPayload_": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TechnologyPayload"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "findings": {
+            "items": {
+              "$ref": "#/components/schemas/Finding"
+            },
+            "title": "Findings",
+            "type": "array"
+          },
+          "interpretations": {
+            "items": {
+              "$ref": "#/components/schemas/Interpretation"
+            },
+            "title": "Interpretations",
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/SectionMeta"
+          }
+        },
+        "required": [
+          "meta"
+        ],
+        "title": "Section[TechnologyPayload]",
+        "type": "object"
+      },
+      "SecurityCategory": {
+        "enum": [
+          "transport",
+          "headers",
+          "cookies",
+          "content_integrity",
+          "exposure"
+        ],
+        "title": "SecurityCategory",
+        "type": "string"
+      },
+      "SecurityPayload": {
+        "additionalProperties": false,
+        "description": "Phase 2. ``score`` is the only score in the whole domain model (axiom A4).",
+        "properties": {
+          "headers": {
+            "items": {
+              "$ref": "#/components/schemas/HeaderObservationSummary"
+            },
+            "title": "Headers",
+            "type": "array"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SecurityScore"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "title": "SecurityPayload",
+        "type": "object"
+      },
+      "SecurityRuleResult": {
+        "additionalProperties": false,
+        "properties": {
+          "awarded": {
+            "description": "Points earned, between 0 and weight.",
+            "title": "Awarded",
+            "type": "number"
+          },
+          "category": {
+            "$ref": "#/components/schemas/SecurityCategory"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/EvidenceRef"
+            },
+            "title": "Evidence",
+            "type": "array"
+          },
+          "id": {
+            "description": "Stable rule id, e.g. 'HDR-01'.",
+            "title": "Id",
+            "type": "string"
+          },
+          "outcome": {
+            "$ref": "#/components/schemas/RuleOutcome"
+          },
+          "rationale": {
+            "description": "Why this outcome, stated in observable terms.",
+            "title": "Rationale",
+            "type": "string"
+          },
+          "recommendation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recommendation"
+          },
+          "reference": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Specification or documentation URL.",
+            "title": "Reference"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "weight": {
+            "description": "Points available when the rule is applicable.",
+            "title": "Weight",
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "category",
+          "outcome",
+          "weight",
+          "awarded",
+          "rationale"
+        ],
+        "title": "SecurityRuleResult",
+        "type": "object"
+      },
+      "SecurityScore": {
+        "additionalProperties": false,
+        "properties": {
+          "applied_caps": {
+            "items": {
+              "$ref": "#/components/schemas/AppliedCap"
+            },
+            "title": "Applied Caps",
+            "type": "array"
+          },
+          "band": {
+            "$ref": "#/components/schemas/PostureBand"
+          },
+          "band_phrase": {
+            "title": "Band Phrase",
+            "type": "string"
+          },
+          "disclaimer": {
+            "default": "This is a passive assessment of externally observable configuration for a single page at a single point in time. It does not evaluate application logic, server-side controls, dependencies, or data handling, and it cannot establish that a site is secure or insecure.",
+            "title": "Disclaimer",
+            "type": "string"
+          },
+          "excluded_rules": {
+            "items": {
+              "$ref": "#/components/schemas/ExcludedRule"
+            },
+            "title": "Excluded Rules",
+            "type": "array"
+          },
+          "label": {
+            "default": "Observable Security Posture",
+            "title": "Label",
+            "type": "string"
+          },
+          "methodology_version": {
+            "title": "Methodology Version",
+            "type": "string"
+          },
+          "percentage": {
+            "title": "Percentage",
+            "type": "number"
+          },
+          "points_applicable": {
+            "description": "Sum of weights for evaluated rules only; excluded rules are not counted.",
+            "title": "Points Applicable",
+            "type": "number"
+          },
+          "points_awarded": {
+            "title": "Points Awarded",
+            "type": "number"
+          },
+          "rules": {
+            "items": {
+              "$ref": "#/components/schemas/SecurityRuleResult"
+            },
+            "title": "Rules",
+            "type": "array"
+          }
+        },
+        "required": [
+          "methodology_version",
+          "points_awarded",
+          "points_applicable",
+          "percentage",
+          "band",
+          "band_phrase"
+        ],
+        "title": "SecurityScore",
+        "type": "object"
+      },
+      "SeoPayload": {
+        "additionalProperties": false,
+        "properties": {
+          "indexability": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/IndexabilityObservation"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "metadata": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MetadataObservation"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "structured_data": {
+            "items": {
+              "$ref": "#/components/schemas/StructuredDataBlock"
+            },
+            "title": "Structured Data",
+            "type": "array"
+          }
+        },
+        "title": "SeoPayload",
+        "type": "object"
+      },
+      "StageCapability": {
+        "additionalProperties": false,
+        "properties": {
+          "implemented": {
+            "title": "Implemented",
+            "type": "boolean"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "optional": {
+            "title": "Optional",
+            "type": "boolean"
+          },
+          "weight": {
+            "title": "Weight",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "weight",
+          "implemented",
+          "optional"
+        ],
+        "title": "StageCapability",
+        "type": "object"
+      },
+      "StageKey": {
+        "description": "Collection and analysis stages, in execution order.",
+        "enum": [
+          "validate",
+          "dns",
+          "robots",
+          "http_probe",
+          "tls",
+          "browser_launch",
+          "navigate",
+          "dom_capture",
+          "runtime_capture",
+          "style_capture",
+          "perf_capture",
+          "network_capture",
+          "a11y_capture",
+          "responsive_probe",
+          "screenshot",
+          "analyze",
+          "assemble"
+        ],
+        "title": "StageKey",
+        "type": "string"
+      },
+      "StageProgress": {
+        "additionalProperties": false,
+        "description": "Progress derived from stages that actually completed.\n\nThere is no interpolation and no time-based estimate here on purpose: the requirement\nis honest progress, and the simplest way to guarantee it is to have no mechanism\ncapable of faking it.",
+        "properties": {
+          "completed_weight": {
+            "default": 0,
+            "title": "Completed Weight",
+            "type": "integer"
+          },
+          "current_stage": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/StageKey"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "current_stage_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Stage Label"
+          },
+          "stages_completed": {
+            "default": 0,
+            "title": "Stages Completed",
+            "type": "integer"
+          },
+          "stages_total": {
+            "default": 0,
+            "title": "Stages Total",
+            "type": "integer"
+          },
+          "total_weight": {
+            "default": 0,
+            "title": "Total Weight",
+            "type": "integer"
+          }
+        },
+        "title": "StageProgress",
+        "type": "object"
+      },
+      "StageRun": {
+        "additionalProperties": false,
+        "properties": {
+          "duration_ms": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Ms"
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorCode"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error_detail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Detail"
+          },
+          "key": {
+            "$ref": "#/components/schemas/StageKey"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "skip_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Skip Reason"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "status": {
+            "$ref": "#/components/schemas/StageStatus"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "status"
+        ],
+        "title": "StageRun",
+        "type": "object"
+      },
+      "StageStatus": {
+        "enum": [
+          "pending",
+          "running",
+          "completed",
+          "failed",
+          "skipped"
+        ],
+        "title": "StageStatus",
+        "type": "string"
+      },
+      "StructuredDataBlock": {
+        "additionalProperties": false,
+        "properties": {
+          "format": {
+            "title": "Format",
+            "type": "string"
+          },
+          "parse_error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parse Error"
+          },
+          "raw_length": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Raw Length"
+          },
+          "types": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Types",
+            "type": "array"
+          },
+          "valid": {
+            "title": "Valid",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "format",
+          "valid"
+        ],
+        "title": "StructuredDataBlock",
+        "type": "object"
+      },
+      "TargetInfo": {
+        "additionalProperties": false,
+        "description": "What we ended up analyzing, which is not always what was requested.",
+        "properties": {
+          "document_title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Document Title"
+          },
+          "final_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Final Url"
+          },
+          "host": {
+            "title": "Host",
+            "type": "string"
+          },
+          "http_status": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Http Status"
+          },
+          "normalized_url": {
+            "title": "Normalized Url",
+            "type": "string"
+          },
+          "port": {
+            "title": "Port",
+            "type": "integer"
+          },
+          "redirect_chain": {
+            "items": {
+              "$ref": "#/components/schemas/RedirectHop"
+            },
+            "title": "Redirect Chain",
+            "type": "array"
+          },
+          "requested_url": {
+            "title": "Requested Url",
+            "type": "string"
+          },
+          "resolved_ips": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Resolved Ips",
+            "type": "array"
+          },
+          "robots": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RobotsObservation"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "scheme": {
+            "title": "Scheme",
+            "type": "string"
+          }
+        },
+        "required": [
+          "requested_url",
+          "normalized_url",
+          "host",
+          "port",
+          "scheme"
+        ],
+        "title": "TargetInfo",
+        "type": "object"
+      },
+      "TechnologyPayload": {
+        "additionalProperties": false,
+        "description": "Phase 3.",
+        "properties": {
+          "products": {
+            "items": {
+              "$ref": "#/components/schemas/DetectedProduct"
+            },
+            "title": "Products",
+            "type": "array"
+          }
+        },
+        "title": "TechnologyPayload",
+        "type": "object"
+      },
+      "ValidationError": {
+        "properties": {
+          "ctx": {
+            "title": "Context",
+            "type": "object"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
+        "type": "object"
+      },
+      "Viewport": {
+        "additionalProperties": false,
+        "properties": {
+          "height": {
+            "default": 900,
+            "maximum": 2160.0,
+            "minimum": 320.0,
+            "title": "Height",
+            "type": "integer"
+          },
+          "width": {
+            "default": 1440,
+            "maximum": 3840.0,
+            "minimum": 320.0,
+            "title": "Width",
+            "type": "integer"
+          }
+        },
+        "title": "Viewport",
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "description": "Evidence-based website technical intelligence.\n\nDetection is deterministic and never performed by an AI model. Every asserted fact carries the\nevidence that supports it, and anything that cannot be established from observation is reported\nas not detected, not determinable, or unable to verify rather than guessed.\n\nAnalysis is passive: WebLens observes what a normal visit reveals. It does not test\nauthentication, submit forms, fuzz inputs, or attempt to bypass access controls.",
+    "title": "WebLens API",
+    "version": "0.1.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/api/v1/ai/explain": {
+      "post": {
+        "operationId": "explain_api_v1_ai_explain_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExplainRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExplainResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "501": {
+            "description": "No AI provider is configured."
+          }
+        },
+        "summary": "Generate an explanation over verified findings",
+        "tags": [
+          "ai"
+        ]
+      }
+    },
+    "/api/v1/capabilities": {
+      "get": {
+        "operationId": "capabilities_api_v1_capabilities_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CapabilitiesResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Analyzers, stages, and limits in this build",
+        "tags": [
+          "meta"
+        ]
+      }
+    },
+    "/api/v1/scans": {
+      "post": {
+        "operationId": "create_scan_api_v1_scans_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScanRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScanAcceptedResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Submit a URL for analysis",
+        "tags": [
+          "scans"
+        ]
+      }
+    },
+    "/api/v1/scans/{scan_id}": {
+      "delete": {
+        "description": "Called by the client once the result is stored in IndexedDB.\n\nIdempotent: an unknown id also returns 204, because the desired end state - no server copy -\nholds either way.",
+        "operationId": "delete_scan_api_v1_scans__scan_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "scan_id",
+            "required": true,
+            "schema": {
+              "title": "Scan Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Release the server-side copy of a scan",
+        "tags": [
+          "scans"
+        ]
+      },
+      "get": {
+        "operationId": "get_scan_api_v1_scans__scan_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "scan_id",
+            "required": true,
+            "schema": {
+              "title": "Scan Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScanJobState"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Scan status and stage progress",
+        "tags": [
+          "scans"
+        ]
+      }
+    },
+    "/api/v1/scans/{scan_id}/events": {
+      "get": {
+        "operationId": "scan_events_api_v1_scans__scan_id__events_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "scan_id",
+            "required": true,
+            "schema": {
+              "title": "Scan Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Server-sent events for scan progress",
+        "tags": [
+          "scans"
+        ]
+      }
+    },
+    "/api/v1/scans/{scan_id}/result": {
+      "get": {
+        "operationId": "get_result_api_v1_scans__scan_id__result_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "scan_id",
+            "required": true,
+            "schema": {
+              "title": "Scan Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalysisResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "409": {
+            "description": "The scan has not finished yet."
+          },
+          "410": {
+            "description": "The result was released after the retention window."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Structured analysis result",
+        "tags": [
+          "scans"
+        ]
+      }
+    },
+    "/health": {
+      "get": {
+        "description": "Report service liveness and whether a browser is available.\n\n``status`` stays ``ok`` when the browser is missing: the API is up and HTTP-only scans still\nwork. The frontend uses ``browser.available`` to warn before a scan instead of after.",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Liveness and browser readiness",
+        "tags": [
+          "meta"
+        ]
+      }
+    }
+  }
+}

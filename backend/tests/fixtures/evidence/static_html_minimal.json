@@ -1,0 +1,212 @@
+{
+  "captured_from": "https://example.com/",
+  "collection_mode": "http_only",
+  "evidence": {
+    "accessibility": null,
+    "collected_at": "2026-08-19T11:38:36.047026Z",
+    "console": null,
+    "dns": {
+      "error": null,
+      "host": "example.com",
+      "resolution_ms": null,
+      "resolved_ips": [
+        "2606:4700:8de5:72db:f2de:dd3:ef6b:ff98",
+        "172.66.147.243",
+        "104.20.23.154"
+      ]
+    },
+    "dom": {
+      "anchor_count": 1,
+      "charset": null,
+      "dir": null,
+      "element_count": 12,
+      "external_anchor_count": 1,
+      "forms": [],
+      "headings": [
+        {
+          "level": 1,
+          "text": "Example Domain"
+        }
+      ],
+      "html_bytes": 559,
+      "iframe_srcs": [],
+      "images": [],
+      "inline_style_bytes": 145,
+      "inline_style_count": 0,
+      "landmark_roles": [],
+      "lang": "en",
+      "link_tags": [
+        {
+          "crossorigin": null,
+          "href": "data:,",
+          "hreflang": null,
+          "integrity": null,
+          "rel": "icon",
+          "sizes": null,
+          "type": null
+        }
+      ],
+      "meta_tags": [
+        {
+          "charset": null,
+          "content": "width=device-width, initial-scale=1",
+          "http_equiv": null,
+          "name": "viewport",
+          "property": null
+        }
+      ],
+      "noscript_count": 0,
+      "noscript_text_length": 0,
+      "picture_count": 0,
+      "positive_tabindex_count": 0,
+      "scripts": [],
+      "source": "static_html",
+      "structured_data": [],
+      "stylesheets": [],
+      "svg_count": 0,
+      "text_length": 284,
+      "title": "Example Domain",
+      "video_count": 0
+    },
+    "http": {
+      "body_bytes": 559,
+      "body_text": "<!doctype html><html lang=\"en\"><head><title>Example Domain</title><link rel=\"icon\" href=\"data:,\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><style>body{background:#eee;width:60vw;margin:15vh auto;font-family:system-ui,sans-serif}h1{font-size:1.5em}div{opacity:0.8}a:link,a:visited{color:#348}</style></head><body><div><h1>Example Domain</h1><p>This domain is for use in documentation examples without needing permission. Avoid use in operations.</p><p><a href=\"https://iana.org/domains/example\">Learn more</a></p></div></body></html>\n",
+      "body_truncated": false,
+      "charset": null,
+      "content_type": "text/html",
+      "cookies": [],
+      "elapsed_ms": 107.12,
+      "final_url": "https://example.com/",
+      "headers": [
+        {
+          "name": "date",
+          "value": "Wed, 19 Aug 2026 11:38:35 GMT"
+        },
+        {
+          "name": "content-type",
+          "value": "text/html"
+        },
+        {
+          "name": "transfer-encoding",
+          "value": "chunked"
+        },
+        {
+          "name": "connection",
+          "value": "keep-alive"
+        },
+        {
+          "name": "server",
+          "value": "cloudflare"
+        },
+        {
+          "name": "last-modified",
+          "value": "Tue, 18 Aug 2026 20:06:42 GMT"
+        },
+        {
+          "name": "allow",
+          "value": "GET, HEAD"
+        },
+        {
+          "name": "age",
+          "value": "9606"
+        },
+        {
+          "name": "cf-cache-status",
+          "value": "HIT"
+        },
+        {
+          "name": "content-encoding",
+          "value": "gzip"
+        },
+        {
+          "name": "cf-ray",
+          "value": "a2d8df76df1d4e87-HYD"
+        }
+      ],
+      "hops": [
+        {
+          "elapsed_ms": 102.36,
+          "headers": [
+            {
+              "name": "date",
+              "value": "Wed, 19 Aug 2026 11:38:35 GMT"
+            },
+            {
+              "name": "content-type",
+              "value": "text/html"
+            },
+            {
+              "name": "transfer-encoding",
+              "value": "chunked"
+            },
+            {
+              "name": "connection",
+              "value": "keep-alive"
+            },
+            {
+              "name": "server",
+              "value": "cloudflare"
+            },
+            {
+              "name": "last-modified",
+              "value": "Tue, 18 Aug 2026 20:06:42 GMT"
+            },
+            {
+              "name": "allow",
+              "value": "GET, HEAD"
+            },
+            {
+              "name": "age",
+              "value": "9606"
+            },
+            {
+              "name": "cf-cache-status",
+              "value": "HIT"
+            },
+            {
+              "name": "content-encoding",
+              "value": "gzip"
+            },
+            {
+              "name": "cf-ray",
+              "value": "a2d8df76df1d4e87-HYD"
+            }
+          ],
+          "http_version": "HTTP/1.1",
+          "location": null,
+          "status": 200,
+          "url": "https://example.com/"
+        }
+      ],
+      "http_origin_redirect_status": 200,
+      "http_origin_redirects_to_https": false,
+      "http_version": "HTTP/1.1",
+      "status": 200
+    },
+    "network": null,
+    "performance": null,
+    "robots": {
+      "allowed": true,
+      "error": null,
+      "fetched": true,
+      "matched_directive": null,
+      "sitemaps": [],
+      "status": 404,
+      "url": "https://example.com/robots.txt",
+      "user_agent_group": null
+    },
+    "runtime": null,
+    "screenshots": null,
+    "styles": null,
+    "target": {
+      "host": "example.com",
+      "normalized_url": "https://example.com/",
+      "path": "/",
+      "port": 443,
+      "requested_url": "https://example.com",
+      "scheme": "https"
+    },
+    "tls": null,
+    "viewports": null
+  }
+}
