@@ -121,13 +121,16 @@ function ThemeToggle() {
       <DropdownMenuContent>
         <DropdownMenuLabel>Theme</DropdownMenuLabel>
         <DropdownMenuSeparator />
-        {(['system', 'light', 'dark'] as const).map((option) => (
-          <DropdownMenuItem key={option} onSelect={() => setTheme(option)}>
-            {THEME_ICONS[option]({ className: 'size-4' })}
-            <span className="capitalize">{option}</span>
-            {theme === option && <span className="ml-auto text-xs text-muted-foreground">active</span>}
-          </DropdownMenuItem>
-        ))}
+        {(['system', 'light', 'dark'] as const).map((option) => {
+          const OptionIcon = THEME_ICONS[option];
+          return (
+            <DropdownMenuItem key={option} onSelect={() => setTheme(option)}>
+              <OptionIcon className="size-4" />
+              <span className="capitalize">{option}</span>
+              {theme === option && <span className="ml-auto text-xs text-muted-foreground">active</span>}
+            </DropdownMenuItem>
+          );
+        })}
       </DropdownMenuContent>
     </DropdownMenu>
   );
