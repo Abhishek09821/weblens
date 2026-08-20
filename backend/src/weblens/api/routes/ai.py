@@ -71,3 +71,65 @@ async def explain(
     provider = get_provider(settings)
     result = await service.result(request.scan_id)
     return await provider.explain(result, request.sections, request.audience)
+
+
+class SummarizeRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    scan_id: str | None = None
+    result_data: dict[str, object] | None = None
+
+
+class SummarizeResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    available: bool
+    summary: str | None = None
+    model: str | None = None
+    disclaimer: str = (
+        "This summary is AI-generated from verified analysis findings. "
+        "It does not introduce new detections or modify factual values."
+    )
+
+
+@router.post(
+    "/summarize",
+    response_model=SummarizeResponse,
+    summary="Generate a human-readable AI summary of the analysis",
+)
+async def summarize(
+    request: SummarizeRequest, service: ScanServiceDep
+) -> SummarizeResponse:
+    from weblens.ai.summarize import (
+        GROQ_MODEL,
+        build_summary_input,
+        generate_summary,
+        is_ai_available,
+    )
+
+    if not is_ai_available():
+        return SummarizeResponse(available=False, summary=None)
+
+    # Accept either a scan_id (if still on server) or direct result_data from client
+    if request.result_data:
+        summary_input = build_summary_input(request.result_data)  # type: ignore[arg-type]
+    elif request.scan_id:
+        try:
+            result = await service.result(request.scan_id)
+            summary_input = build_summary_input(result.model_dump())
+        except Exception:
+            return SummarizeResponse(
+                available=True,
+                summary=None,
+                model=None,
+            )
+    else:
+        return SummarizeResponse(available=False, summary=None)
+
+    summary_text = await generate_summary(summary_input)
+
+    return SummarizeResponse(
+        available=True,
+        summary=summary_text,
+        model=GROQ_MODEL if summary_text else None,
+    )

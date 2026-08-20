@@ -123,4 +123,19 @@ export const api = {
   eventsUrl(scanId: string): string {
     return `${API_V1}/scans/${scanId}/events`;
   },
+
+  /** Generate an AI summary of the analysis (optional, requires GROQ_API_KEY on backend). */
+  async summarize(result: unknown): Promise<{ available: boolean; summary: string | null; model: string | null; disclaimer: string }> {
+    try {
+      const response = await fetch(`${API_V1}/ai/summarize`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ result_data: result }),
+      });
+      if (!response.ok) return { available: false, summary: null, model: null, disclaimer: '' };
+      return await response.json();
+    } catch {
+      return { available: false, summary: null, model: null, disclaimer: '' };
+    }
+  },
 };

@@ -4,6 +4,8 @@ import { sectionStatusLabel } from '@/lib/format/status';
 import { cn } from '@/lib/utils';
 import { SECTION_KEYS, type SectionKey, type SectionSet } from '@/types/analysis';
 
+export type NavKey = 'overview' | SectionKey;
+
 /**
  * Section navigation with per-section status.
  *
@@ -16,12 +18,30 @@ export function SectionNav({
   onSelect,
 }: {
   sections: SectionSet;
-  active: SectionKey;
-  onSelect: (key: SectionKey) => void;
+  active: NavKey;
+  onSelect: (key: NavKey) => void;
 }) {
   return (
     <nav aria-label="Report sections" className="lg:sticky lg:top-20">
       <ul className="flex gap-1 overflow-x-auto scrollbar-thin lg:flex-col lg:overflow-visible">
+        {/* Overview tab */}
+        <li className="shrink-0 lg:shrink">
+          <button
+            type="button"
+            onClick={() => onSelect('overview')}
+            aria-current={active === 'overview' ? 'page' : undefined}
+            className={cn(
+              'flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-sm transition-colors',
+              active === 'overview'
+                ? 'bg-secondary text-secondary-foreground'
+                : 'text-muted-foreground hover:bg-secondary/60 hover:text-foreground',
+            )}
+          >
+            <span className="inline-block size-1.5 shrink-0 rounded-full bg-primary" aria-hidden="true" />
+            <span className="flex-1 whitespace-nowrap font-medium">Overview</span>
+          </button>
+        </li>
+
         {SECTION_KEYS.map((key) => {
           const status = sections[key].meta.status;
           const findingCount = sections[key].findings.length;

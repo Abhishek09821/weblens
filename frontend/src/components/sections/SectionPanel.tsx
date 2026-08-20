@@ -1,10 +1,14 @@
 import { DownloadIcon, TriangleAlertIcon } from 'lucide-react';
 
+import { AccessibilityDetails } from '@/components/sections/AccessibilityDetails';
+import { DesignDetails } from '@/components/sections/DesignDetails';
 import { FindingsTable } from '@/components/sections/FindingsTable';
 import { InterpretationCallout } from '@/components/sections/InterpretationCallout';
+import { PerformanceDetails } from '@/components/sections/PerformanceDetails';
 import { SectionStatusBadge } from '@/components/sections/StatusBadge';
-import { SeoDetails } from '@/components/sections/SeoDetails';
 import { SecurityDetails } from '@/components/sections/SecurityDetails';
+import { SeoDetails } from '@/components/sections/SeoDetails';
+import { TechnologyDetails } from '@/components/sections/TechnologyDetails';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -73,8 +77,21 @@ export function SectionPanel({
 
       {sectionKey === 'security' && renderable && <SecurityDetails section={section} />}
       {sectionKey === 'seo' && renderable && <SeoDetails section={section} />}
+      {sectionKey === 'technology' && renderable && <TechnologyDetails result={result} />}
+      {sectionKey === 'design' && renderable && <DesignDetails result={result} />}
+      {sectionKey === 'performance' && renderable && <PerformanceDetails result={result} />}
+      {sectionKey === 'accessibility' && renderable && <AccessibilityDetails result={result} />}
 
-      {renderable && <FindingsTable findings={section.findings} />}
+      {renderable && (
+        <details className="rounded-lg border border-border">
+          <summary className="cursor-pointer px-4 py-2.5 text-sm font-medium">
+            All Findings ({section.findings.length}) — Technical Detail
+          </summary>
+          <div className="border-t border-border px-4 py-3">
+            <FindingsTable findings={section.findings} />
+          </div>
+        </details>
+      )}
       {renderable && <InterpretationCallout interpretations={section.interpretations} />}
 
       <AnalyzerRunTable section={section} />

@@ -2,7 +2,8 @@ import { CircleAlertIcon, ExternalLinkIcon, TriangleAlertIcon } from 'lucide-rea
 import { useNavigate, useParams } from 'react-router-dom';
 
 import { ExportMenu } from '@/components/reports/ExportMenu';
-import { SectionNav } from '@/components/sections/SectionNav';
+import { SectionNav, type NavKey } from '@/components/sections/SectionNav';
+import { OverviewPanel } from '@/components/sections/OverviewPanel';
 import { SectionPanel } from '@/components/sections/SectionPanel';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -12,7 +13,6 @@ import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useStoredResult } from '@/features/history/useScanLibrary';
 import { formatDuration, formatTimestamp, truncateMiddle } from '@/lib/format/values';
-import { loadPrefs } from '@/lib/prefs/prefs';
 import { SECTION_KEYS, type SectionKey } from '@/types/analysis';
 
 export function ScanRoute() {
@@ -20,10 +20,10 @@ export function ScanRoute() {
   const navigate = useNavigate();
   const stored = useStoredResult(scanId);
 
-  const active: SectionKey =
+  const active: NavKey =
     sectionKey && (SECTION_KEYS as readonly string[]).includes(sectionKey)
       ? (sectionKey as SectionKey)
-      : loadPrefs().default_section;
+      : 'overview';
 
   if (stored.isLoading) {
     return (
@@ -129,9 +129,13 @@ export function ScanRoute() {
         <SectionNav
           sections={result.sections}
           active={active}
-          onSelect={(key) => navigate(`/scan/${scan.scan_id}/${key}`)}
+          onSelect={(key) => navigate(key === 'overview' ? `/scan/${scan.scan_id}` : `/scan/${scan.scan_id}/${key}`)}
         />
-        <SectionPanel result={result} sectionKey={active} />
+        {active === 'overview' ? (
+          <OverviewPanel result={result} />
+        ) : (
+          <SectionPanel result={result} sectionKey={active} />
+        )}
       </div>
     </div>
   );

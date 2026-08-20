@@ -3476,6 +3476,61 @@
         "title": "StructuredDataBlock",
         "type": "object"
       },
+      "SummarizeRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "scan_id": {
+            "title": "Scan Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "scan_id"
+        ],
+        "title": "SummarizeRequest",
+        "type": "object"
+      },
+      "SummarizeResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "available": {
+            "title": "Available",
+            "type": "boolean"
+          },
+          "disclaimer": {
+            "default": "This summary is AI-generated from verified analysis findings. It does not introduce new detections or modify factual values.",
+            "title": "Disclaimer",
+            "type": "string"
+          },
+          "model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model"
+          },
+          "summary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Summary"
+          }
+        },
+        "required": [
+          "available"
+        ],
+        "title": "SummarizeResponse",
+        "type": "object"
+      },
       "TargetInfo": {
         "additionalProperties": false,
         "description": "What we ended up analyzing, which is not always what was requested.",
@@ -3692,6 +3747,47 @@
           }
         },
         "summary": "Generate an explanation over verified findings",
+        "tags": [
+          "ai"
+        ]
+      }
+    },
+    "/api/v1/ai/summarize": {
+      "post": {
+        "operationId": "summarize_api_v1_ai_summarize_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SummarizeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SummarizeResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Generate a human-readable AI summary of the analysis",
         "tags": [
           "ai"
         ]
