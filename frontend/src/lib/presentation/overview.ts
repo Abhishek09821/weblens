@@ -1,75 +1,67 @@
 /**
- * Executive overview derived from structured analysis results.
+ * Focused overview derived from structured V2 results.
  *
- * Every claim here traces back to a finding. Nothing is invented.
- * This layer transforms raw findings into user-facing summaries.
+ * Every claim here traces back to a finding or section metadata. AI hypotheses are deliberately
+ * excluded from the overview so they cannot be mistaken for detected technology.
  */
-import type { AnalysisResult, Finding } from '@/types/analysis';
-import { securityScoreSchema } from '@/types/analysis';
+import {
+  securityPayloadSchema,
+  trafficPayloadSchema,
+  type AnalysisResult,
+  type Finding,
+  type FindingStatus,
+} from '@/types/analysis';
 
 export interface OverviewData {
-  target: { host: string; url: string; httpStatus: number | null };
-  technology: TechSummary;
-  rendering: RenderingSummary;
-  design: DesignSummary;
-  security: SecuritySummary;
-  performance: PerformanceSummary;
-  accessibility: AccessibilitySummary;
-  seo: SeoSummary;
-  infrastructure: InfraSummary;
+  target: {
+    host: string;
+    url: string;
+    httpStatus: number | null;
+    scanStatus: AnalysisResult['scan']['status'];
+  };
+  technology: {
+    items: Array<{ name: string; status: FindingStatus }>;
+    rendering: { value: string; status: FindingStatus } | null;
+    unavailable: boolean;
+  };
+  design: {
+    fonts: string[];
+    colorsObserved: number | null;
+    observations: string[];
+    unavailable: boolean;
+  };
+  security: {
+    percentage: number | null;
+    bandPhrase: string | null;
+    disclaimer: string | null;
+  };
+  traffic: {
+    providerName: string | null;
+    providerAvailable: boolean;
+    estimates: Array<{ name: string; value: string; status: FindingStatus }>;
+    analyticsServices: string[];
+    unavailableReason: string | null;
+  };
+  evidence: {
+    verified: number;
+    stronglyInferred: number;
+    inferred: number;
+    aiInferred: number;
+    unknown: number;
+    analyzersCompleted: number;
+    analyzersTotal: number;
+    limitationCount: number;
+    errorCount: number;
+  };
 }
 
-export interface TechSummary {
-  detected: string[];
-  status: 'available' | 'none_detected' | 'unavailable';
-}
-
-export interface RenderingSummary {
-  strategy: string | null;
-  certainty: string | null;
-}
-
-export interface DesignSummary {
-  fonts: string[];
-  colorCount: number | null;
-  hasResponsive: boolean;
-  observations: string[];
-}
-
-export interface SecuritySummary {
-  percentage: number | null;
-  band: string | null;
-  bandPhrase: string | null;
-  strongControls: string[];
-  missingControls: string[];
-}
-
-export interface PerformanceSummary {
-  ttfb: number | null;
-  fcp: number | null;
-  lcp: number | null;
-  transferBytes: number | null;
-  requestCount: number | null;
-}
-
-export interface AccessibilitySummary {
-  issues: string[];
-  violationCount: number | null;
-}
-
-export interface SeoSummary {
-  title: string | null;
-  hasDescription: boolean;
-  hasCanonical: boolean;
-  hasOpenGraph: boolean;
-  hasStructuredData: boolean;
-}
-
-export interface InfraSummary {
-  platforms: string[];
-  cdn: string[];
-  server: string[];
-}
+const OVERVIEW_TECH_SOURCES = [
+  'technology.framework',
+  'technology.stack',
+  'technology.styling',
+  'technology.language',
+  'architecture.platform',
+] as const;
 
 export function buildOverview(result: AnalysisResult): OverviewData {
   return {
@@ -77,190 +69,176 @@ export function buildOverview(result: AnalysisResult): OverviewData {
       host: result.target.host,
       url: result.target.final_url ?? result.target.normalized_url,
       httpStatus: result.target.http_status ?? null,
+      scanStatus: result.scan.status,
     },
-    technology: extractTechSummary(result),
-    rendering: extractRenderingSummary(result),
-    design: extractDesignSummary(result),
-    security: extractSecuritySummary(result),
-    performance: extractPerformanceSummary(result),
-    accessibility: extractAccessibilitySummary(result),
-    seo: extractSeoSummary(result),
-    infrastructure: extractInfraSummary(result),
+    technology: buildTechnologySummary(result),
+    design: buildDesignSummary(result),
+    security: buildSecuritySummary(result),
+    traffic: buildTrafficSummary(result),
+    evidence: buildEvidenceSummary(result),
   };
 }
 
-function extractTechSummary(result: AnalysisResult): TechSummary {
+function buildTechnologySummary(result: AnalysisResult): OverviewData['technology'] {
   const section = result.sections.technology;
-  if (section.meta.status === 'unavailable' || section.meta.status === 'not_implemented') {
-    return { detected: [], status: 'unavailable' };
-  }
-  const detected = section.findings
-    .filter((f) => f.status === 'verified' || f.status === 'inferred')
-    .map((f) => f.name)
-    .filter((name) => !name.includes('Server-side technology'));
-  return { detected, status: detected.length > 0 ? 'available' : 'none_detected' };
+  const items = deduplicateFindings(
+    section.findings.filter(
+      (finding) =>
+        finding.detected === true &&
+        finding.status !== 'ai_inferred' &&
+        isAssertedStatus(finding.status) &&
+        OVERVIEW_TECH_SOURCES.some((source) => finding.source === source),
+    ),
+  )
+    .slice(0, 8)
+    .map((finding) => ({ name: technologyName(finding), status: finding.status }));
+
+  const renderingFinding = section.findings.find(
+    (finding) =>
+      finding.id === 'architecture.rendering:rendering-strategy' &&
+      isAssertedStatus(finding.status) &&
+      finding.value !== null &&
+      finding.value !== undefined,
+  );
+
+  return {
+    items,
+    rendering: renderingFinding
+      ? {
+          value: humanize(String(renderingFinding.value)),
+          status: renderingFinding.status,
+        }
+      : null,
+    unavailable: section.meta.status === 'unavailable' || section.meta.status === 'not_implemented',
+  };
 }
 
-function extractRenderingSummary(result: AnalysisResult): RenderingSummary {
-  const finding = findById(result.sections.architecture.findings, 'architecture.rendering:rendering-strategy');
-  if (!finding || !finding.value) return { strategy: null, certainty: null };
-  const strategy = String(finding.value).replace(/_/g, ' ');
-  const certainty = finding.status === 'verified' ? 'Verified' : 'Inferred';
-  return { strategy, certainty };
-}
-
-function extractDesignSummary(result: AnalysisResult): DesignSummary {
+function buildDesignSummary(result: AnalysisResult): OverviewData['design'] {
   const section = result.sections.design;
-  const fonts: string[] = [];
+  const fontFinding = findById(section.findings, 'design.typography:loaded-fonts');
+  const colorFinding = findById(section.findings, 'design.color:background-colors');
   const observations: string[] = [];
 
-  const fontFinding = findById(section.findings, 'design.typography:loaded-fonts');
-  if (fontFinding?.values) fonts.push(...fontFinding.values.slice(0, 4));
-
-  const bgFinding = findById(section.findings, 'design.color:background-colors');
-  const colorCount = typeof bgFinding?.value === 'number' ? bgFinding.value : null;
-
-  // Check responsive
-  const breakpoints = findById(section.findings, 'design.layout:breakpoints');
-  const hasResponsive = breakpoints != null && (breakpoints.value as number) > 0;
-
-  // Build observations
-  const displayTypes = findById(section.findings, 'design.layout:display-types');
-  if (displayTypes?.values?.includes('flex') || displayTypes?.values?.includes('grid')) {
-    observations.push('Modern layout (flex/grid)');
+  const layoutFinding = findById(section.findings, 'design.layout:display-types');
+  if (layoutFinding?.values.some((value) => value === 'flex' || value === 'grid')) {
+    observations.push('Flex/grid layout');
   }
-  if (hasResponsive) observations.push('Responsive layout');
-  const radii = findById(section.findings, 'design.layout:border-radius');
-  if (radii && (radii.value as number) > 0) observations.push('Rounded controls');
-  const shadows = findById(section.findings, 'design.layout:box-shadows');
-  if (shadows && (shadows.value as number) > 0) observations.push('Subtle shadows');
-  const transitions = findById(section.findings, 'design.motion:transitions');
-  if (transitions && (transitions.value as number) > 0) observations.push('CSS transitions');
-
-  return { fonts, colorCount, hasResponsive, observations };
-}
-
-function extractSecuritySummary(result: AnalysisResult): SecuritySummary {
-  const section = result.sections.security;
-  const raw = section.data && typeof section.data === 'object'
-    ? (section.data as { score?: unknown }).score : undefined;
-  const parsed = securityScoreSchema.safeParse(raw);
-
-  if (!parsed.success) {
-    return { percentage: null, band: null, bandPhrase: null, strongControls: [], missingControls: [] };
+  if ((findById(section.findings, 'design.layout:breakpoints')?.values.length ?? 0) > 0) {
+    observations.push('Responsive breakpoints observed');
   }
-
-  const score = parsed.data;
-  const strong = score.rules.filter((r) => r.outcome === 'pass').map((r) => r.title);
-  const missing = score.rules.filter((r) => r.outcome === 'fail').map((r) => r.title);
+  if ((findById(section.findings, 'design.layout:gap-values')?.values.length ?? 0) > 0) {
+    observations.push('Reusable spacing values');
+  }
+  if ((findById(section.findings, 'design.motion:transitions')?.values.length ?? 0) > 0) {
+    observations.push('CSS transitions observed');
+  }
 
   return {
-    percentage: score.percentage,
-    band: score.band,
-    bandPhrase: score.band_phrase,
-    strongControls: strong,
-    missingControls: missing,
+    fonts: fontFinding?.values.slice(0, 4) ?? [],
+    colorsObserved: typeof colorFinding?.value === 'number' ? colorFinding.value : null,
+    observations,
+    unavailable: section.meta.status === 'unavailable' || section.meta.status === 'not_implemented',
   };
 }
 
-function extractPerformanceSummary(result: AnalysisResult): PerformanceSummary {
-  const section = result.sections.performance;
+function buildSecuritySummary(result: AnalysisResult): OverviewData['security'] {
+  const parsed = securityPayloadSchema.safeParse(result.sections.security.data);
+  const score = parsed.success ? parsed.data.score : null;
   return {
-    ttfb: findNumericValue(section.findings, 'performance.timings:ttfb'),
-    fcp: findNumericValue(section.findings, 'performance.timings:fcp'),
-    lcp: findNumericValue(section.findings, 'performance.timings:lcp'),
-    transferBytes: findNumericValue(section.findings, 'performance.resources:transfer-size'),
-    requestCount: findNumericValue(section.findings, 'performance.resources:request-count'),
+    percentage: score?.percentage ?? null,
+    bandPhrase: score?.band_phrase ?? null,
+    disclaimer: score?.disclaimer ?? null,
   };
 }
 
-function extractAccessibilitySummary(result: AnalysisResult): AccessibilitySummary {
-  const section = result.sections.accessibility;
-  const issues: string[] = [];
+function buildTrafficSummary(result: AnalysisResult): OverviewData['traffic'] {
+  const section = result.sections.traffic;
+  const parsed = trafficPayloadSchema.safeParse(section.data);
+  const providerName = parsed.success ? (parsed.data.provider_name ?? null) : null;
+  const providerAvailable = parsed.success ? parsed.data.provider_available : false;
+  const popularity = section.findings.filter((finding) => finding.category === 'popularity');
+  const estimates = popularity
+    .filter(
+      (finding) =>
+        isAssertedStatus(finding.status) &&
+        (finding.value !== null || finding.values.length > 0),
+    )
+    .map((finding) => ({
+      name: finding.name,
+      value: finding.value === null || finding.value === undefined
+        ? finding.values.join(', ')
+        : String(finding.value),
+      status: finding.status,
+    }));
 
-  const missingAlt = findById(section.findings, 'accessibility.structure:images-missing-alt');
-  if (missingAlt && typeof missingAlt.value === 'number' && missingAlt.value > 0) {
-    issues.push(`${missingAlt.value} images without alt text`);
-  }
-
-  const formLabels = findById(section.findings, 'accessibility.structure:form-labels');
-  if (formLabels && typeof formLabels.value === 'number' && formLabels.value > 0) {
-    issues.push(`${formLabels.value} form inputs without labels`);
-  }
-
-  const headings = findById(section.findings, 'accessibility.structure:heading-hierarchy');
-  if (headings && headings.values && headings.values.length > 0) {
-    issues.push('Heading hierarchy issues detected');
-  }
-
-  const violationCount = findNumericValue(section.findings, 'accessibility.axe:violation-count');
-
-  return { issues, violationCount };
-}
-
-function extractSeoSummary(result: AnalysisResult): SeoSummary {
-  const section = result.sections.seo;
-  const titleFinding = findById(section.findings, 'seo.metadata:title');
-  const descFinding = findById(section.findings, 'seo.metadata:meta-description');
-  const canonFinding = findById(section.findings, 'seo.metadata:canonical');
-  const ogFinding = findById(section.findings, 'seo.metadata:open-graph');
-  const sdFinding = findById(section.findings, 'seo.structured_data:structured-data');
+  const analyticsServices = section.findings
+    .filter((finding) => finding.category === 'analytics' && finding.detected === true)
+    .flatMap((finding) => (finding.values.length > 0 ? finding.values : [String(finding.value ?? finding.name)]));
+  const unavailableFinding = popularity.find(
+    (finding) => finding.status === 'unable_to_verify' || finding.status === 'not_determinable',
+  );
 
   return {
-    title: titleFinding?.status === 'verified' ? String(titleFinding.value ?? '') : null,
-    hasDescription: descFinding?.status === 'verified',
-    hasCanonical: canonFinding?.status === 'verified',
-    hasOpenGraph: ogFinding?.status === 'verified',
-    hasStructuredData: sdFinding?.status === 'verified',
+    providerName,
+    providerAvailable,
+    estimates,
+    analyticsServices: [...new Set(analyticsServices)].slice(0, 6),
+    unavailableReason:
+      estimates.length > 0
+        ? null
+        : (unavailableFinding?.reason ?? section.meta.unavailable_reason ?? 'No public traffic estimate was available.'),
   };
 }
 
-function extractInfraSummary(result: AnalysisResult): InfraSummary {
-  const archFindings = result.sections.architecture.findings;
-  const techFindings = result.sections.technology.findings;
+function buildEvidenceSummary(result: AnalysisResult): OverviewData['evidence'] {
+  const sections = Object.values(result.sections);
+  const findings = sections.flatMap((section) => section.findings);
+  const analyzers = sections.flatMap((section) => section.meta.analyzers);
+  const count = (status: FindingStatus) => findings.filter((finding) => finding.status === status).length;
 
-  const platforms: string[] = [];
-  const cdn: string[] = [];
-  const server: string[] = [];
+  return {
+    verified: count('verified'),
+    stronglyInferred: count('strongly_inferred'),
+    inferred: count('inferred'),
+    aiInferred: count('ai_inferred'),
+    unknown: count('not_detected') + count('not_determinable') + count('unable_to_verify'),
+    analyzersCompleted: analyzers.filter((analyzer) => analyzer.status === 'completed').length,
+    analyzersTotal: analyzers.length,
+    limitationCount:
+      result.limitations.length +
+      sections.reduce((total, section) => total + section.meta.limitations.length, 0),
+    errorCount: result.errors.length,
+  };
+}
 
-  // From architecture.platform findings
-  for (const f of archFindings) {
-    if (f.source === 'architecture.platform' && f.detected && f.value) {
-      const val = String(f.value);
-      if (f.details?.type === 'cdn') cdn.push(val);
-      else platforms.push(val);
-    }
+function technologyName(finding: Finding): string {
+  if (
+    typeof finding.value === 'string' &&
+    ['Hosting platform', 'Server-side technology'].includes(finding.name)
+  ) {
+    return finding.value;
   }
+  return finding.name.replace('Platform: ', '');
+}
 
-  // From technology.stack - CDN/hosting categories
-  for (const f of techFindings) {
-    if (f.source === 'technology.stack' && f.detected) {
-      const name = f.name;
-      if (['Cloudflare', 'AWS CloudFront', 'Fastly', 'Vercel', 'Netlify', 'GitHub Pages'].includes(name)) {
-        if (!cdn.includes(name) && !platforms.includes(name)) {
-          if (name.includes('Front') || name === 'Cloudflare' || name === 'Fastly') cdn.push(name);
-          else platforms.push(name);
-        }
-      }
-    }
-  }
+function deduplicateFindings(findings: Finding[]): Finding[] {
+  const seen = new Set<string>();
+  return findings.filter((finding) => {
+    const name = technologyName(finding).toLowerCase();
+    if (seen.has(name)) return false;
+    seen.add(name);
+    return true;
+  });
+}
 
-  // From technology.language - server software
-  for (const f of techFindings) {
-    if (f.source === 'technology.language' && f.detected && f.value) {
-      server.push(String(f.value));
-    }
-  }
-
-  return { platforms, cdn, server };
+function isAssertedStatus(status: FindingStatus): boolean {
+  return status === 'verified' || status === 'strongly_inferred' || status === 'inferred';
 }
 
 function findById(findings: Finding[], id: string): Finding | undefined {
-  return findings.find((f) => f.id === id);
+  return findings.find((finding) => finding.id === id);
 }
 
-function findNumericValue(findings: Finding[], id: string): number | null {
-  const f = findById(findings, id);
-  if (!f || typeof f.value !== 'number') return null;
-  return f.value;
+function humanize(value: string): string {
+  return value.replace(/[_-]+/g, ' ');
 }

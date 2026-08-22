@@ -25,6 +25,7 @@ from weblens.domain.observations import (
     HttpObservation,
     NetworkObservation,
     PerformanceObservation,
+    ResearchObservation,
     RobotsObservation,
     RuntimeObservation,
     ScreenshotArtifact,
@@ -85,6 +86,7 @@ class RawEvidence(BaseModel):
     viewports: list[ViewportMetrics] | None = None
     console: list[ConsoleMessage] | None = None
     screenshots: list[ScreenshotArtifact] | None = None
+    research: ResearchObservation | None = None
 
     def has(self, slot: EvidenceSlot) -> bool:
         """True when the slot was collected. Empty collections count as collected."""

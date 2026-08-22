@@ -23,7 +23,7 @@ class AccessibilityStructureAnalyzer:
     """Checks document structure for accessibility concerns."""
 
     id = ANALYZER_ID
-    section = SectionKey.ACCESSIBILITY
+    section = SectionKey.DESIGN
     version = "1.0.0"
     requires = frozenset({EvidenceSlot.DOM})
     depends_on: frozenset[str] = frozenset()

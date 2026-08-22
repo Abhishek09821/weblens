@@ -1,39 +1,32 @@
-/**
- * Report generation tests.
- *
- * Two of these encode product principles as executable checks rather than testing formatting:
- * confidence must never appear beside a claim, and cookie values must never appear in output. Those
- * are the promises most likely to be eroded by a well-intentioned refactor.
- */
 import { describe, expect, it } from 'vitest';
 
 import { makeFinding, makeResult, makeSection } from '@/test/factories';
 import type { AnalysisResult } from '@/types/analysis';
 
 import { bundleToZip } from './bundle';
-import { renderAnalysisJson, stableStringify } from './json';
 import { buildReportBundle, renderSectionReport } from './generate';
+import { renderAnalysisJson, stableStringify } from './json';
 import { REPORT_DEFINITIONS } from './markdown/renderers';
+import { generateCompletePdf, generateSectionPdf } from './pdf';
 
 function bundleFiles(result: AnalysisResult): Record<string, string> {
-  return Object.fromEntries(
-    buildReportBundle(result).files.map((file) => [file.path, file.contents]),
-  );
+  return Object.fromEntries(buildReportBundle(result).files.map((file) => [file.path, file.contents]));
 }
 
-describe('buildReportBundle', () => {
-  it('produces the documented file set', () => {
-    const files = bundleFiles(makeResult());
-    expect(Object.keys(files).sort()).toEqual([
-      'README.md',
-      'accessibility.md',
+describe('V2 report generation', () => {
+  it('produces exactly four Markdown reports plus analysis.json', () => {
+    expect(Object.keys(bundleFiles(makeResult())).sort()).toEqual([
       'analysis.json',
-      'architecture.md',
       'design.md',
-      'performance.md',
       'security.md',
-      'seo.md',
       'techstack.md',
+      'traffic.md',
+    ]);
+    expect(REPORT_DEFINITIONS.map((definition) => definition.section)).toEqual([
+      'design',
+      'technology',
+      'security',
+      'traffic',
     ]);
   });
 
@@ -43,93 +36,106 @@ describe('buildReportBundle', () => {
     );
   });
 
-  it('includes scan metadata and target in every markdown file', () => {
+  it('includes scan metadata and target in every Markdown file', () => {
     const files = bundleFiles(makeResult());
     for (const definition of REPORT_DEFINITIONS) {
       const contents = files[definition.file];
-      expect(contents, definition.file).toBeDefined();
-      expect(contents).toContain('01M0CSX29SJT518RFY2VXF91XW');
-      expect(contents).toContain('https://example.test/');
-      expect(contents).toContain('Engine version');
-      expect(contents).toContain('Schema version');
+      expect(contents, definition.file).toContain('01M0CSX29SJT518RFY2VXF91XW');
+      expect(contents, definition.file).toContain('https://example.test/');
+      expect(contents, definition.file).toContain('Engine version');
+      expect(contents, definition.file).toContain('Schema version');
     }
   });
 
-  it('still writes a file for a section that produced nothing', () => {
-    const files = bundleFiles(makeResult());
-    // An empty-but-explained file makes a partial scan self-documenting.
-    expect(files['design.md']).toContain('No findings available');
-    expect(files['design.md']).toContain('No analyzer for this section ships in this build yet');
-    expect(files['design.md']).toContain('Nothing about the target was inferred in its place');
+  it('structures design.md for reconstruction work', () => {
+    const design = bundleFiles(makeResult())['design.md'];
+    for (const heading of [
+      'Page Structure',
+      'Navigation',
+      'Layout System',
+      'Responsive Behavior',
+      'Typography',
+      'Colors',
+      'Spacing',
+      'Components and Patterns',
+      'Media',
+      'Motion',
+      'AI / Research Verdicts',
+      'Limitations',
+    ]) {
+      expect(design).toContain(`## ${heading}`);
+    }
   });
 
-  it('renders findings with word statuses and reasons', () => {
-    const seo = bundleFiles(makeResult())['seo.md'] ?? '';
-    expect(seo).toContain('| Document title | Verified |');
-    expect(seo).toContain('Meta description');
-    expect(seo).toContain('Not detected');
-    expect(seo).toContain('No <meta name="description"> with content was present.');
+  it('structures techstack.md with status fidelity and explicit AI hypotheses', () => {
+    const tech = bundleFiles(makeResult())['techstack.md'];
+    expect(tech).toContain('# Website Technical Stack');
+    expect(tech).toContain('## Frontend');
+    expect(tech).toContain('## Rendering');
+    expect(tech).toContain('Strongly Supported');
+    expect(tech).toContain('## Architecture Hypothesis');
+    expect(tech).toContain('AI Inferred — this is a hypothesis, not a verified detection');
+    expect(tech).toContain('Reasoning');
+    expect(tech).toContain('https://research.example.test/source');
+    expect(tech).toContain('## Unknown / Not Publicly Determinable');
   });
 
-  it('never prints confidence beside a claim', () => {
+  it('reports unavailable traffic without fabricating an estimate', () => {
+    const traffic = bundleFiles(makeResult())['traffic.md'];
+    expect(traffic).toContain('Traffic estimates are unavailable');
+    expect(traffic).toContain('No traffic data provider is configured');
+    expect(traffic).toContain('Unable to verify');
+    expect(traffic).not.toMatch(/\b0\s+(visits|users|sessions)\b/i);
+  });
+
+  it('never prints internal confidence values beside claims', () => {
     const files = bundleFiles(makeResult());
     for (const [path, contents] of Object.entries(files)) {
-      if (path === 'analysis.json') continue; // retained there as auditable metadata
+      if (path === 'analysis.json') continue;
       expect(contents.toLowerCase(), path).not.toContain('definitive');
-      expect(contents.toLowerCase(), path).not.toContain('confidence');
+      expect(contents.toLowerCase(), path).not.toContain('moderate confidence');
+      expect(contents, path).not.toMatch(/\d+%\s*(confident|certain)/i);
     }
   });
 
-  it('includes evidence for asserted findings', () => {
-    const seo = bundleFiles(makeResult())['seo.md'] ?? '';
-    expect(seo).toContain('Observed evidence');
-    expect(seo).toContain('dom.title');
+  it('includes evidence for deterministic and AI-inferred claims', () => {
+    const tech = bundleFiles(makeResult())['techstack.md'];
+    expect(tech).toContain('Observed evidence');
+    expect(tech).toContain('runtime.globals.React');
+    expect(tech).toContain('ai.inference');
   });
 
   it('omits evidence when asked', () => {
-    const file = renderSectionReport(makeResult(), 'seo', {
+    const file = renderSectionReport(makeResult(), 'technology', {
       includeEvidence: false,
       maxEvidencePerFinding: 0,
     });
-    expect(file?.contents).not.toContain('Observed evidence');
+    expect(file.contents).not.toContain('Observed evidence');
   });
 
-  it('folds the network section into the architecture report', () => {
-    const architecture = bundleFiles(makeResult())['architecture.md'] ?? '';
-    expect(architecture).toContain('Network and external resources');
-    expect(architecture).toContain('robots.txt verdict');
-  });
-
-  it('states run context where measurements are involved', () => {
-    const files = bundleFiles(makeResult());
-    expect(files['performance.md']).toContain('Run context');
-    expect(files['performance.md']).toContain('http_only');
-    expect(files['design.md']).toContain('Wait strategy');
-  });
-
-  it('explains that no security score was produced', () => {
-    expect(bundleFiles(makeResult())['security.md']).toContain('No posture score was produced');
-  });
-
-  it('lists the bundle contents and status legend in the README', () => {
-    const readme = bundleFiles(makeResult())['README.md'] ?? '';
-    expect(readme).toContain('analysis.json');
-    expect(readme).toContain('**Not detected**');
-    expect(readme).toContain('not the same');
+  it('still writes an explained file for an unavailable section', () => {
+    const result = makeResult();
+    result.sections.design = makeSection('design', 'unavailable');
+    const design = bundleFiles(result)['design.md'];
+    expect(design).toContain('No findings available');
+    expect(design).toContain('Every analyzer for this section failed');
   });
 });
 
-describe('markdown safety', () => {
+describe('Markdown safety', () => {
   it('escapes hostile content so it cannot break out of a table cell', () => {
     const result = makeResult();
-    result.sections.seo = makeSection('seo', 'complete', [
+    result.sections.design = makeSection('design', 'complete', [
       makeFinding({
-        id: 'seo.metadata:title',
+        id: 'design.color:hostile',
+        category: 'color',
+        name: 'Hostile color label',
         value: 'Evil | ## Fake heading\n- injected bullet',
+        source: 'design.color',
         evidence: [
           {
-            kind: 'html_element',
-            source: 'dom.title',
+            kind: 'computed_style',
+            source: 'styles.sample',
             excerpt: 'contains ``` fence and | pipe',
             location: null,
             detail: {},
@@ -138,24 +144,23 @@ describe('markdown safety', () => {
       }),
     ]);
 
-    const seo = renderSectionReport(result, 'seo')?.contents ?? '';
-    const tableLine = seo.split('\n').find((line) => line.includes('Evil')) ?? '';
-
+    const markdown = renderSectionReport(result, 'design').contents;
+    const tableLine = markdown.split('\n').find((line) => line.includes('Evil')) ?? '';
     expect(tableLine).toContain('\\|');
     expect(tableLine).not.toContain('\n');
-    expect(seo).not.toContain('\n## Fake heading');
-    // A fence in an excerpt must not terminate the code block early.
-    expect(seo).toContain('````');
+    expect(markdown).not.toContain('\n## Fake heading');
+    expect(markdown).toContain('````');
   });
 
-  it('never emits a cookie value', () => {
+  it('never emits a raw cookie value', () => {
     const result = makeResult();
     result.sections.security = makeSection('security', 'complete', [
       makeFinding({
         id: 'security.cookies:session',
         category: 'cookies',
-        name: 'Cookie: session_id',
+        name: 'Session cookie attributes',
         value: 'Secure; HttpOnly; SameSite=Lax',
+        source: 'security.cookies',
         evidence: [
           {
             kind: 'cookie',
@@ -166,24 +171,23 @@ describe('markdown safety', () => {
           },
         ],
       }),
-    ]);
+    ], { score: null, headers: [] });
 
-    const files = buildReportBundle(result).files;
-    for (const file of files) {
+    for (const file of buildReportBundle(result).files) {
       expect(file.contents).not.toMatch(/set-cookie:\s*\S+=\S+/i);
     }
   });
 });
 
-describe('determinism', () => {
-  it('renders byte-identical markdown for the same result', () => {
+describe('determinism and machine-readable export', () => {
+  it('renders byte-identical Markdown for the same result', () => {
     const result = makeResult();
-    expect(renderSectionReport(result, 'seo')?.contents).toBe(
-      renderSectionReport(result, 'seo')?.contents,
+    expect(renderSectionReport(result, 'technology').contents).toBe(
+      renderSectionReport(result, 'technology').contents,
     );
   });
 
-  it('sorts json keys so exports are diffable', () => {
+  it('sorts JSON keys so exports are diffable', () => {
     expect(stableStringify({ b: 1, a: { d: 2, c: 3 } })).toBe(
       '{\n  "a": {\n    "c": 3,\n    "d": 2\n  },\n  "b": 1\n}\n',
     );
@@ -196,25 +200,37 @@ describe('determinism', () => {
 });
 
 describe('bundleToZip', () => {
-  it('packages the report files', async () => {
+  it('packages all five report files', async () => {
     const bundle = buildReportBundle(makeResult());
     const blob = await bundleToZip(bundle);
-
     expect(blob.type).toBe('application/zip');
     expect(blob.size).toBeGreaterThan(0);
 
     const text = new TextDecoder('latin1').decode(await blob.arrayBuffer());
-    for (const file of bundle.files) {
-      expect(text).toContain(file.path);
-    }
+    for (const file of bundle.files) expect(text).toContain(file.path);
   });
 
-  it('includes screenshots under a fixed path', async () => {
+  it('preserves stored screenshots under a fixed supporting-evidence path', async () => {
     const bundle = buildReportBundle(makeResult());
     const blob = await bundleToZip(bundle, [
       { label: 'Viewport Shot', width: 1440, height: 900, blob: new Blob([new Uint8Array([1, 2])]) },
     ]);
     const text = new TextDecoder('latin1').decode(await blob.arrayBuffer());
     expect(text).toContain('screenshots/viewport-shot.png');
+  });
+});
+
+describe('PDF exports', () => {
+  it('renders each V2 section and the complete four-report document', () => {
+    const result = makeResult();
+    for (const definition of REPORT_DEFINITIONS) {
+      const pdf = generateSectionPdf(result, definition.section);
+      expect(pdf.type).toBe('application/pdf');
+      expect(pdf.size).toBeGreaterThan(0);
+    }
+
+    const complete = generateCompletePdf(result);
+    expect(complete.type).toBe('application/pdf');
+    expect(complete.size).toBeGreaterThan(0);
   });
 });

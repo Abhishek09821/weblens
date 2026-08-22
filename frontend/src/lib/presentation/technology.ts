@@ -1,203 +1,264 @@
-/**
- * Technology stack presentation model.
- *
- * Groups raw technology findings into meaningful categories for the UI.
- * Every item traces back to one or more findings — nothing is invented.
- */
-import type { Finding, AnalysisResult } from '@/types/analysis';
+/** Presentation model for the consolidated V2 Tech Stack report. */
+import { humanizeLabel } from '@/lib/format/labels';
+import type { AnalysisResult, EvidenceRef, Finding, FindingStatus } from '@/types/analysis';
+
+export interface TechPresentation {
+  categories: TechCategory[];
+  hypotheses: TechHypothesis[];
+  unknowns: TechUnknown[];
+}
 
 export interface TechCategory {
-  title: string;
+  title: TechCategoryName;
   items: TechItem[];
 }
 
 export interface TechItem {
   name: string;
-  status: 'verified' | 'inferred';
+  status: FindingStatus;
   description: string;
   signals: string[];
+  limitations: string[];
   findingId: string;
-  evidence: Finding['evidence'];
+  evidence: EvidenceRef[];
+  source: string;
 }
 
-const CATEGORY_MAP: Record<string, string> = {
-  // Framework
-  'React': 'Frontend',
-  'Next.js': 'Frontend',
-  'Vue.js': 'Frontend',
-  'Nuxt': 'Frontend',
-  'Angular': 'Frontend',
-  'Svelte': 'Frontend',
-  'Gatsby': 'Frontend',
-  'Remix': 'Frontend',
-  'Ember.js': 'Frontend',
-  'Backbone.js': 'Frontend',
-  'Turbo/Hotwire': 'Frontend',
-  'Stimulus': 'Frontend',
-  'Alpine.js': 'Frontend',
-  'HTMX': 'Frontend',
-  // Libraries
-  'jQuery': 'Frontend',
-  'Lodash': 'Frontend',
-  'GSAP': 'Frontend',
-  'Three.js': 'Frontend',
-  // Styling
-  'Tailwind CSS': 'Styling',
-  'Bootstrap': 'Styling',
-  'Bulma': 'Styling',
-  'Material UI': 'Styling',
-  'Chakra UI': 'Styling',
-  'Styled Components': 'Styling',
-  'CSS Modules': 'Styling',
-  'Emotion': 'Styling',
-  'Foundation': 'Styling',
-  'Ant Design': 'Styling',
-  // CMS / E-commerce
-  'WordPress': 'Platform',
-  'Drupal': 'Platform',
-  'Shopify': 'Platform',
-  'WooCommerce': 'Platform',
-  // Build tools
-  'Webpack': 'Build & Tooling',
-  'Vite': 'Build & Tooling',
-  // Server
-  'PHP': 'Backend / Server',
-  'ASP.NET': 'Backend / Server',
-  'Express': 'Backend / Server',
-  'Apache': 'Backend / Server',
-  'nginx': 'Backend / Server',
-  'LiteSpeed': 'Backend / Server',
-  'Microsoft-IIS': 'Backend / Server',
-  'Caddy': 'Backend / Server',
-  'Phusion Passenger': 'Backend / Server',
-  // Infrastructure
-  'Cloudflare': 'Infrastructure',
-  'Vercel': 'Infrastructure',
-  'Netlify': 'Infrastructure',
-  'AWS CloudFront': 'Infrastructure',
-  'Fastly': 'Infrastructure',
-  'GitHub Pages': 'Infrastructure',
-  // Analytics & Third-party
-  'Google Analytics': 'Third-Party Services',
-  'Google Tag Manager': 'Third-Party Services',
-  'Facebook Pixel': 'Third-Party Services',
-  'Google Fonts': 'Third-Party Services',
-  'Adobe Fonts': 'Third-Party Services',
-};
+export interface TechHypothesis {
+  findingId: string;
+  hypothesis: string;
+  reasoning: string | null;
+  basis: Array<{ label: string; url: string | null }>;
+  limitations: string[];
+  evidence: EvidenceRef[];
+}
 
-const TECH_DESCRIPTIONS: Record<string, string> = {
-  'React': 'A JavaScript UI library for building component-based interfaces.',
-  'Next.js': 'A React meta-framework with server-side rendering and routing.',
-  'Vue.js': 'A progressive JavaScript framework for building user interfaces.',
-  'Nuxt': 'A Vue.js meta-framework with SSR and static site generation.',
-  'Angular': 'A TypeScript-based web application framework.',
-  'Svelte': 'A compiler-based UI framework with no virtual DOM.',
-  'jQuery': 'A legacy JavaScript library for DOM manipulation and AJAX.',
-  'Tailwind CSS': 'A utility-first CSS framework.',
-  'Bootstrap': 'A component-based CSS framework with pre-built UI elements.',
-  'Cloudflare': 'A global CDN and security platform.',
-  'Vercel': 'A frontend cloud platform optimized for Next.js deployments.',
-  'Netlify': 'A platform for deploying and hosting modern web applications.',
-  'Google Analytics': 'Web analytics service for tracking visitor behavior.',
-  'Google Tag Manager': 'A tag management system for marketing and analytics scripts.',
-  'WordPress': 'A content management system powering the website.',
-  'Webpack': 'A JavaScript module bundler used to build the application.',
-  'Vite': 'A fast build tool and development server for modern web projects.',
-  'nginx': 'A high-performance web server and reverse proxy.',
-  'Apache': 'A widely-used open-source web server.',
-  'PHP': 'A server-side scripting language.',
-  'Express': 'A minimal Node.js web application framework.',
-  'Turbo/Hotwire': 'A set of libraries for fast page transitions without heavy JavaScript.',
-  'Stimulus': 'A modest JavaScript framework for enhancing server-rendered HTML.',
-  'Alpine.js': 'A lightweight reactive JavaScript framework for adding behavior to markup.',
-  'HTMX': 'A library that allows accessing modern browser features directly from HTML.',
-  'GSAP': 'A professional-grade animation library.',
-  'Shopify': 'An e-commerce platform powering the online store.',
-  'GitHub Pages': 'Static site hosting provided by GitHub.',
-  'Google Fonts': 'A web font service delivering typefaces to the page.',
-};
+export interface TechUnknown {
+  findingId: string;
+  name: string;
+  status: Extract<FindingStatus, 'not_detected' | 'not_determinable' | 'unable_to_verify'>;
+  reason: string;
+  limitations: string[];
+}
 
-export function buildTechPresentation(result: AnalysisResult): TechCategory[] {
-  const techFindings = result.sections.technology.findings;
-  const archFindings = result.sections.architecture.findings;
+type TechCategoryName =
+  | 'Frontend'
+  | 'Rendering'
+  | 'Styling'
+  | 'Libraries'
+  | 'Infrastructure'
+  | 'Backend signals'
+  | 'Third-party services'
+  | 'Analytics'
+  | 'CDN / hosting'
+  | 'Potential backend architecture';
 
-  const allFindings = [...techFindings, ...archFindings].filter(
-    (f) => (f.status === 'verified' || f.status === 'inferred') && f.detected,
-  );
+const CATEGORY_ORDER: TechCategoryName[] = [
+  'Frontend',
+  'Rendering',
+  'Styling',
+  'Libraries',
+  'Infrastructure',
+  'Backend signals',
+  'Third-party services',
+  'Analytics',
+  'CDN / hosting',
+  'Potential backend architecture',
+];
 
-  const categories = new Map<string, TechItem[]>();
+const LIBRARIES = new Set([
+  'jQuery',
+  'Lodash',
+  'GSAP',
+  'Three.js',
+  'Turbo/Hotwire',
+  'Stimulus',
+  'Alpine.js',
+  'HTMX',
+]);
+const ANALYTICS = new Set([
+  'Google Analytics',
+  'Google Tag Manager',
+  'Meta Pixel',
+  'Facebook Pixel',
+  'Segment',
+  'Mixpanel',
+  'Hotjar',
+  'Microsoft Clarity',
+]);
+const CDN_HOSTING = new Set([
+  'Cloudflare',
+  'Vercel',
+  'Netlify',
+  'AWS CloudFront',
+  'Fastly',
+  'GitHub Pages',
+]);
+const THIRD_PARTY = new Set(['Google Fonts', 'Adobe Fonts', 'Intercom', 'Stripe']);
 
-  for (const finding of allFindings) {
-    // Skip generic "not detected" or summary findings
-    if (finding.name === 'Server-side technology' || finding.name === 'Hosting platform') continue;
-    if (finding.source === 'architecture.rendering') continue; // Handled separately
-    if (finding.source === 'architecture.runtime') continue; // Handled separately
+export function buildTechPresentation(result: AnalysisResult): TechPresentation {
+  const findings = result.sections.technology.findings;
+  const categories = new Map<TechCategoryName, TechItem[]>();
 
-    const name = finding.name.replace('Platform: ', '');
-    const category = CATEGORY_MAP[name] ?? inferCategory(finding);
+  for (const finding of findings) {
+    if (!isDeterministicClaim(finding)) continue;
+    const category = categoryFor(finding);
+    if (!category) continue;
+
     const item: TechItem = {
-      name,
-      status: finding.status === 'verified' ? 'verified' : 'inferred',
-      description: TECH_DESCRIPTIONS[name] ?? `Detected from observable signals on this page.`,
-      signals: buildSignalSummary(finding),
+      name: displayName(finding),
+      status: finding.status,
+      description: descriptionFor(finding),
+      signals: signalSummary(finding),
+      limitations: finding.limitations,
       findingId: finding.id,
       evidence: finding.evidence,
+      source: finding.source,
     };
-
     const group = categories.get(category) ?? [];
-    group.push(item);
+    if (!group.some((existing) => existing.name === item.name)) group.push(item);
     categories.set(category, group);
   }
 
-  // Sort categories in presentation order
-  const ORDER = ['Frontend', 'Styling', 'Backend / Server', 'Infrastructure', 'Platform', 'Build & Tooling', 'Third-Party Services', 'Other'];
-  return ORDER
-    .filter((title) => categories.has(title))
-    .map((title) => ({ title, items: categories.get(title)! }));
+  const byId = new Map(findings.map((finding) => [finding.id, finding.name]));
+  const hypotheses = findings
+    .filter((finding) => finding.status === 'ai_inferred')
+    .map((finding) => buildHypothesis(finding, byId));
+  const unknowns = findings
+    .filter(isUnknown)
+    .map((finding) => ({
+      findingId: finding.id,
+      name: finding.name,
+      status: finding.status,
+      reason: finding.reason ?? 'No public evidence was available for this conclusion.',
+      limitations: finding.limitations,
+    }));
+
+  return {
+    categories: CATEGORY_ORDER.filter((title) => categories.has(title)).map((title) => ({
+      title,
+      items: categories.get(title) ?? [],
+    })),
+    hypotheses,
+    unknowns,
+  };
 }
 
-function inferCategory(finding: Finding): string {
-  if (finding.source.includes('platform')) return 'Infrastructure';
-  if (finding.source.includes('language')) return 'Backend / Server';
-  if (finding.source.includes('styling')) return 'Styling';
-  if (finding.source.includes('framework')) return 'Frontend';
-  if (finding.source.includes('stack')) return 'Other';
-  return 'Other';
-}
-
-function buildSignalSummary(finding: Finding): string[] {
-  const signals: string[] = [];
-  for (const ev of finding.evidence.slice(0, 3)) {
-    if (ev.excerpt) {
-      // Make evidence human-readable
-      const readable = humanizeEvidence(ev.kind, ev.excerpt);
-      signals.push(readable);
-    }
+function isDeterministicClaim(finding: Finding): boolean {
+  if (
+    finding.status !== 'verified' &&
+    finding.status !== 'strongly_inferred' &&
+    finding.status !== 'inferred'
+  ) {
+    return false;
   }
-  return signals;
+  return (
+    finding.detected === true ||
+    finding.source === 'architecture.rendering' ||
+    finding.source === 'architecture.runtime'
+  );
 }
 
-function humanizeEvidence(kind: string, excerpt: string): string {
-  switch (kind) {
-    case 'http_header':
-      return `Response header contains "${excerpt.slice(0, 60)}"`;
-    case 'script_url':
-      return `Script loaded from ${excerpt.slice(0, 80)}`;
-    case 'runtime_global':
-      return `Runtime global \`${excerpt}\` is present`;
-    case 'network_request':
-      return `Network request to ${excerpt.slice(0, 80)}`;
-    case 'html_attribute':
-      return `HTML attribute \`${excerpt}\` found in markup`;
-    case 'html_element':
-      return `HTML element matches pattern`;
-    case 'meta_tag':
-      return `Meta tag declares "${excerpt.slice(0, 60)}"`;
-    case 'stylesheet_url':
-      return `Stylesheet loaded from ${excerpt.slice(0, 80)}`;
-    case 'computed_style':
-      return `CSS custom property \`${excerpt}\` detected`;
+function categoryFor(finding: Finding): TechCategoryName | null {
+  const name = displayName(finding);
+  if (ANALYTICS.has(name)) return 'Analytics';
+  if (CDN_HOSTING.has(name) || finding.details.type === 'cdn') return 'CDN / hosting';
+  if (THIRD_PARTY.has(name)) return 'Third-party services';
+  if (LIBRARIES.has(name)) return 'Libraries';
+
+  switch (finding.source) {
+    case 'technology.framework':
+      return 'Frontend';
+    case 'technology.styling':
+      return 'Styling';
+    case 'technology.language':
+      return 'Backend signals';
+    case 'architecture.rendering':
+      return 'Rendering';
+    case 'architecture.platform':
+      return 'Infrastructure';
+    case 'architecture.runtime':
+      return 'Potential backend architecture';
+    case 'network.third_parties':
+      return 'Third-party services';
+    case 'technology.stack':
+      return finding.category === 'framework' ? 'Frontend' : 'Libraries';
     default:
-      return excerpt.slice(0, 80);
+      return null;
   }
+}
+
+function displayName(finding: Finding): string {
+  if (
+    typeof finding.value === 'string' &&
+    ['Hosting platform', 'Server-side technology', 'Rendering strategy'].includes(finding.name)
+  ) {
+    return `${finding.name}: ${humanizeLabel(finding.value)}`;
+  }
+  return finding.name.replace('Platform: ', '');
+}
+
+function descriptionFor(finding: Finding): string {
+  if (finding.reason) return finding.reason;
+  if (finding.values.length > 0) return finding.values.slice(0, 5).join(', ');
+  if (finding.value !== null && finding.value !== undefined && typeof finding.value !== 'boolean') {
+    return String(finding.value);
+  }
+  return `Observable signals associated with ${displayName(finding)}.`;
+}
+
+function signalSummary(finding: Finding): string[] {
+  return finding.evidence.slice(0, 4).map((evidence) => humanizeEvidence(evidence));
+}
+
+function humanizeEvidence(evidence: EvidenceRef): string {
+  const excerpt = evidence.excerpt?.slice(0, 120);
+  switch (evidence.kind) {
+    case 'http_header':
+      return excerpt ? `Response header: ${excerpt}` : `Response header at ${evidence.source}`;
+    case 'script_url':
+      return excerpt ? `Script: ${excerpt}` : `Script observed at ${evidence.source}`;
+    case 'runtime_global':
+      return excerpt ? `Runtime global: ${excerpt}` : `Runtime signal at ${evidence.source}`;
+    case 'network_request':
+      return excerpt ? `Network request: ${excerpt}` : `Network request at ${evidence.source}`;
+    case 'meta_tag':
+      return excerpt ? `Meta tag: ${excerpt}` : `Meta tag at ${evidence.source}`;
+    default:
+      return excerpt ?? `${humanizeLabel(evidence.kind)} from ${evidence.source}`;
+  }
+}
+
+function buildHypothesis(finding: Finding, byId: Map<string, string>): TechHypothesis {
+  const reasoningEvidence = finding.evidence.find((evidence) => evidence.kind === 'ai_reasoning');
+  const rawBasis = reasoningEvidence?.detail.basis;
+  const entries = Array.isArray(rawBasis)
+    ? rawBasis.filter((entry): entry is string => typeof entry === 'string')
+    : typeof rawBasis === 'string'
+      ? rawBasis.split(',').map((entry) => entry.trim()).filter(Boolean)
+      : [];
+
+  return {
+    findingId: finding.id,
+    hypothesis: finding.name,
+    reasoning: reasoningEvidence?.excerpt ?? finding.reason ?? null,
+    basis: entries.map((entry) => ({
+      label: byId.get(entry) ?? entry,
+      url: /^https:\/\//i.test(entry) ? entry : null,
+    })),
+    limitations: finding.limitations,
+    evidence: finding.evidence,
+  };
+}
+
+function isUnknown(
+  finding: Finding,
+): finding is Finding & {
+  status: Extract<FindingStatus, 'not_detected' | 'not_determinable' | 'unable_to_verify'>;
+} {
+  return (
+    finding.status === 'not_detected' ||
+    finding.status === 'not_determinable' ||
+    finding.status === 'unable_to_verify'
+  );
 }

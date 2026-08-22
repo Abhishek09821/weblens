@@ -13,7 +13,7 @@ from weblens.analyzers.base import (
 )
 from weblens.domain.enums import Confidence, EvidenceKind, EvidenceSlot, SectionKey
 from weblens.domain.evidence import EvidenceRef
-from weblens.domain.sections import PerformancePayload
+from weblens.domain.sections import TechnologyPayload
 
 ANALYZER_ID = "performance.timings"
 
@@ -27,7 +27,7 @@ class PerformanceTimingsAnalyzer:
     """Reports navigation and paint timing metrics."""
 
     id = ANALYZER_ID
-    section = SectionKey.PERFORMANCE
+    section = SectionKey.TECHNOLOGY
     version = "1.0.0"
     requires = frozenset({EvidenceSlot.PERFORMANCE})
     depends_on: frozenset[str] = frozenset()
@@ -198,6 +198,6 @@ class PerformanceTimingsAnalyzer:
 
         return AnalyzerOutput(
             findings=findings,
-            data=PerformancePayload(timings=perf) if findings else None,
+            data=TechnologyPayload(timings=perf) if findings else None,
             limitations=limitations,
         )

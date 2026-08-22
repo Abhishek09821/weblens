@@ -21,7 +21,7 @@ class ArchitectureRuntimeAnalyzer:
     """Reports runtime architecture observations."""
 
     id = ANALYZER_ID
-    section = SectionKey.ARCHITECTURE
+    section = SectionKey.TECHNOLOGY
     version = "1.0.0"
     requires = frozenset({EvidenceSlot.RUNTIME, EvidenceSlot.NETWORK})
     depends_on: frozenset[str] = frozenset()

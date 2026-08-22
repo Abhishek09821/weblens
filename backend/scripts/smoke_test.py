@@ -12,7 +12,6 @@ Usage:
 from __future__ import annotations
 
 import asyncio
-import json
 import sys
 import time
 
@@ -24,14 +23,15 @@ TIMEOUT = 90  # seconds
 
 
 async def main() -> int:
-    print(f"=== WebLens Smoke Test ===")
+    print("=== WebLens Smoke Test ===")
     print(f"Target: {TARGET_URL}")
     print()
 
     # Start the server in background
     import uvicorn
-    from weblens.main import create_app
+
     from weblens.config import Settings
+    from weblens.main import create_app
 
     settings = Settings(
         log_level="WARNING",
@@ -56,7 +56,9 @@ async def main() -> int:
             # Submit scan
             print(f"\n[..] Submitting scan for {TARGET_URL}...")
             response = await client.post("/api/v1/scans", json={"url": TARGET_URL})
-            assert response.status_code == 202, f"Submit failed: {response.status_code} - {response.text}"
+            assert response.status_code == 202, (
+                f"Submit failed: {response.status_code} - {response.text}"
+            )
             scan_data = response.json()
             scan_id = scan_data["scan_id"]
             print(f"[OK] Scan accepted: {scan_id}")
@@ -86,7 +88,7 @@ async def main() -> int:
             result = result_resp.json()
 
             # Validate structure
-            print(f"\n=== Result Validation ===")
+            print("\n=== Result Validation ===")
             print(f"Schema version: {result['schema_version']}")
             print(f"Scan status: {result['scan']['status']}")
             print(f"Duration: {result['scan']['duration_ms']:.0f}ms")
@@ -97,10 +99,18 @@ async def main() -> int:
             print(f"Limitations: {len(result['limitations'])}")
 
             # Validate sections
-            print(f"\n=== Sections ===")
+            print("\n=== Sections ===")
             total_findings = 0
-            for section_key in ("seo", "security", "technology", "design",
-                                "performance", "accessibility", "architecture", "network"):
+            for section_key in (
+                "seo",
+                "security",
+                "technology",
+                "design",
+                "performance",
+                "accessibility",
+                "architecture",
+                "network",
+            ):
                 section = result["sections"][section_key]
                 section_status = section["meta"]["status"]
                 findings_count = len(section["findings"])
@@ -108,14 +118,16 @@ async def main() -> int:
                 has_data = section["data"] is not None
                 analyzers = section["meta"]["analyzers"]
                 completed = sum(1 for a in analyzers if a["status"] == "completed")
-                print(f"  {section_key:15s} | status={section_status:12s} | "
-                      f"findings={findings_count:3d} | analyzers={completed}/{len(analyzers)} | "
-                      f"data={'yes' if has_data else 'no'}")
+                print(
+                    f"  {section_key:15s} | status={section_status:12s} | "
+                    f"findings={findings_count:3d} | analyzers={completed}/{len(analyzers)} | "
+                    f"data={'yes' if has_data else 'no'}"
+                )
 
             print(f"\n  Total findings: {total_findings}")
 
             # Validate key evidence was collected
-            print(f"\n=== Evidence Validation ===")
+            print("\n=== Evidence Validation ===")
             errors = []
 
             # SEO should always have findings
@@ -125,8 +137,11 @@ async def main() -> int:
             else:
                 print(f"[OK] SEO: {len(seo['findings'])} findings")
                 # Check specific metadata was collected
-                titles = [f for f in seo["findings"] if "title" in f["name"].lower()
-                          and f["status"] == "verified"]
+                titles = [
+                    f
+                    for f in seo["findings"]
+                    if "title" in f["name"].lower() and f["status"] == "verified"
+                ]
                 if titles:
                     print(f"     Title: {titles[0].get('value', 'N/A')}")
 
@@ -152,7 +167,7 @@ async def main() -> int:
                 for f in detected[:5]:
                     print(f"     - {f['name']}: {f.get('value', '')}")
             else:
-                print(f"[--] Technology: no findings (expected for simple sites)")
+                print("[--] Technology: no findings (expected for simple sites)")
 
             # Performance
             perf = result["sections"]["performance"]
@@ -162,40 +177,41 @@ async def main() -> int:
                     if f.get("unit") == "ms":
                         print(f"     {f['name']}: {f.get('value')}ms")
             else:
-                print(f"[--] Performance: no findings (browser collection may not have run)")
+                print("[--] Performance: no findings (browser collection may not have run)")
 
             # Accessibility
             a11y = result["sections"]["accessibility"]
             if a11y["findings"]:
                 print(f"[OK] Accessibility: {len(a11y['findings'])} findings")
             else:
-                print(f"[--] Accessibility: no findings")
+                print("[--] Accessibility: no findings")
 
             # Network
             net = result["sections"]["network"]
             if net["findings"]:
                 print(f"[OK] Network: {len(net['findings'])} findings")
             else:
-                print(f"[--] Network: no findings (needs browser collection)")
+                print("[--] Network: no findings (needs browser collection)")
 
             # Architecture
             arch = result["sections"]["architecture"]
             if arch["findings"]:
                 print(f"[OK] Architecture: {len(arch['findings'])} findings")
             else:
-                print(f"[--] Architecture: no findings")
+                print("[--] Architecture: no findings")
 
             # Design
             design = result["sections"]["design"]
             if design["findings"]:
                 print(f"[OK] Design: {len(design['findings'])} findings")
             else:
-                print(f"[--] Design: no findings (needs browser style collection)")
+                print("[--] Design: no findings (needs browser style collection)")
 
             # Evidence provenance check
-            print(f"\n=== Provenance Check ===")
+            print("\n=== Provenance Check ===")
             verified_findings = [
-                f for sec_key in result["sections"]
+                f
+                for sec_key in result["sections"]
                 for f in result["sections"][sec_key]["findings"]
                 if f["status"] in ("verified", "inferred")
             ]
@@ -207,16 +223,16 @@ async def main() -> int:
                     errors.append(f"Finding {f['id']} is {f['status']} without evidence")
 
             # Summary
-            print(f"\n=== Summary ===")
+            print("\n=== Summary ===")
             if errors:
                 print(f"ERRORS ({len(errors)}):")
                 for e in errors:
                     print(f"  - {e}")
                 return 1
             else:
-                print(f"SMOKE TEST PASSED")
+                print("SMOKE TEST PASSED")
                 print(f"  - {total_findings} findings across all sections")
-                print(f"  - All verified findings carry evidence")
+                print("  - All verified findings carry evidence")
                 print(f"  - Scan completed in {elapsed:.1f}s")
                 return 0
 

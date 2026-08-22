@@ -1,5 +1,5 @@
 import { CircleAlertIcon, ExternalLinkIcon, TriangleAlertIcon } from 'lucide-react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Navigate, useNavigate, useParams } from 'react-router-dom';
 
 import { ExportMenu } from '@/components/reports/ExportMenu';
 import { SectionNav, type NavKey } from '@/components/sections/SectionNav';
@@ -13,17 +13,20 @@ import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useStoredResult } from '@/features/history/useScanLibrary';
 import { formatDuration, formatTimestamp, truncateMiddle } from '@/lib/format/values';
-import { SECTION_KEYS, type SectionKey } from '@/types/analysis';
+import { sectionKeySchema } from '@/types/analysis';
 
 export function ScanRoute() {
   const { scanId, sectionKey } = useParams<{ scanId: string; sectionKey?: string }>();
   const navigate = useNavigate();
   const stored = useStoredResult(scanId);
 
-  const active: NavKey =
-    sectionKey && (SECTION_KEYS as readonly string[]).includes(sectionKey)
-      ? (sectionKey as SectionKey)
-      : 'overview';
+  const parsedSection = sectionKey ? sectionKeySchema.safeParse(sectionKey) : null;
+
+  if (sectionKey && !parsedSection?.success) {
+    return <Navigate replace to={scanId ? `/scan/${scanId}` : '/'} />;
+  }
+
+  const active: NavKey = parsedSection?.success ? parsedSection.data : 'overview';
 
   if (stored.isLoading) {
     return (

@@ -9,6 +9,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from weblens.domain.enums import ErrorCode, ScanStatus, SectionKey, StageKey, StageStatus
 from weblens.domain.errors import ProblemDetail, ScanError
 from weblens.domain.observations import RobotsObservation
+from weblens.domain.quality import ScanQuality
 from weblens.domain.sections import SectionSet
 from weblens.utils.timing import utc_now
 from weblens.version import ENGINE_VERSION, SCHEMA_VERSION, USER_AGENT
@@ -151,6 +152,10 @@ class AnalysisResult(BaseModel):
     scan: ScanMetadata
     target: TargetInfo
     sections: SectionSet
+    quality: ScanQuality | None = Field(
+        default=None,
+        description="Evidence quality assessment. Determines whether AI fallback is recommended.",
+    )
     errors: list[ScanError] = Field(default_factory=list)
     screenshots: list[ScreenshotRef] = Field(default_factory=list)
     limitations: list[str] = Field(default_factory=list)

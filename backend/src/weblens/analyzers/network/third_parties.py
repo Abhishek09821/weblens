@@ -18,7 +18,7 @@ class NetworkThirdPartiesAnalyzer:
     """Analyzes first-party vs third-party request distribution."""
 
     id = ANALYZER_ID
-    section = SectionKey.NETWORK
+    section = SectionKey.TECHNOLOGY
     version = "1.0.0"
     requires = frozenset({EvidenceSlot.NETWORK})
     depends_on: frozenset[str] = frozenset()

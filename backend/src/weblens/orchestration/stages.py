@@ -42,6 +42,8 @@ STAGES: tuple[StageDefinition, ...] = (
     StageDefinition(StageKey.RESPONSIVE_PROBE, "Measuring responsive layout", 5, False),
     StageDefinition(StageKey.SCREENSHOT, "Capturing screenshots", 4, False),
     StageDefinition(StageKey.ANALYZE, "Running analyzers", 12, True, optional=False),
+    StageDefinition(StageKey.RESEARCH, "Searching public sources", 6, True),
+    StageDefinition(StageKey.INFERENCE, "Running AI inference", 4, True),
     StageDefinition(StageKey.ASSEMBLE, "Assembling report", 2, True, optional=False),
 )
 

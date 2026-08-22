@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
-from weblens.api.routes import ai, capabilities, health, scans
+from weblens.api.routes import ai, capabilities, health, intelligence, scans
 
 API_V1_PREFIX = "/api/v1"
 
@@ -16,4 +16,5 @@ root_router.include_router(health.router)
 api_router = APIRouter(prefix=API_V1_PREFIX)
 api_router.include_router(capabilities.router)
 api_router.include_router(scans.router)
+api_router.include_router(intelligence.router)
 api_router.include_router(ai.router)

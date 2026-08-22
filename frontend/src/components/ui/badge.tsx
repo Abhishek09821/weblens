@@ -18,7 +18,11 @@ const badgeVariants = cva(
         outline: 'border-border text-foreground',
         muted: 'border-transparent bg-muted text-muted-foreground',
         verified: 'border-transparent bg-status-verified/15 text-status-verified',
+        stronglyInferred:
+          'border border-status-strongly-inferred/30 bg-status-strongly-inferred/10 text-status-strongly-inferred',
         inferred: 'border-transparent bg-status-inferred/15 text-status-inferred',
+        aiInferred:
+          'border border-status-ai-inferred/30 bg-status-ai-inferred/10 text-status-ai-inferred',
         neutral: 'border-border/70 bg-transparent text-status-neutral',
         attention: 'border-transparent bg-status-attention/15 text-status-attention',
       },

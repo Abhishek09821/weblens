@@ -1,14 +1,12 @@
 import { DownloadIcon, TriangleAlertIcon } from 'lucide-react';
 
-import { AccessibilityDetails } from '@/components/sections/AccessibilityDetails';
 import { DesignDetails } from '@/components/sections/DesignDetails';
 import { FindingsTable } from '@/components/sections/FindingsTable';
 import { InterpretationCallout } from '@/components/sections/InterpretationCallout';
-import { PerformanceDetails } from '@/components/sections/PerformanceDetails';
 import { SectionStatusBadge } from '@/components/sections/StatusBadge';
 import { SecurityDetails } from '@/components/sections/SecurityDetails';
-import { SeoDetails } from '@/components/sections/SeoDetails';
 import { TechnologyDetails } from '@/components/sections/TechnologyDetails';
+import { TrafficDetails } from '@/components/sections/TrafficDetails';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -76,11 +74,9 @@ export function SectionPanel({
       )}
 
       {sectionKey === 'security' && renderable && <SecurityDetails section={section} />}
-      {sectionKey === 'seo' && renderable && <SeoDetails section={section} />}
       {sectionKey === 'technology' && renderable && <TechnologyDetails result={result} />}
       {sectionKey === 'design' && renderable && <DesignDetails result={result} />}
-      {sectionKey === 'performance' && renderable && <PerformanceDetails result={result} />}
-      {sectionKey === 'accessibility' && renderable && <AccessibilityDetails result={result} />}
+      {sectionKey === 'traffic' && renderable && <TrafficDetails section={section} />}
 
       {renderable && (
         <details className="rounded-lg border border-border">

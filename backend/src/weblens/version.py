@@ -15,7 +15,7 @@ Two independent versions travel with every result:
 from importlib.metadata import PackageNotFoundError
 from importlib.metadata import version as _package_version
 
-SCHEMA_VERSION = "1.0"
+SCHEMA_VERSION = "2.0"
 
 try:  # installed package (the normal case)
     ENGINE_VERSION = _package_version("weblens")

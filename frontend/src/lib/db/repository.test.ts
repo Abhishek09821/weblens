@@ -34,15 +34,46 @@ function openRaw(): Promise<IDBDatabase> {
 }
 
 async function putRawResult(scanId: string, record: unknown): Promise<void> {
+  await putRawRecord('results', record);
+  void scanId;
+}
+
+async function putRawScan(record: unknown): Promise<void> {
+  await putRawRecord('scans', record);
+}
+
+async function putRawRecord(store: 'results' | 'scans', record: unknown): Promise<void> {
   const db = await openRaw();
   await new Promise<void>((resolve, reject) => {
-    const tx = db.transaction('results', 'readwrite');
-    tx.objectStore('results').put(record as never);
+    const tx = db.transaction(store, 'readwrite');
+    tx.objectStore(store).put(record as never);
     tx.oncomplete = () => resolve();
     tx.onerror = () => reject(tx.error);
   });
   db.close();
-  void scanId;
+}
+
+function makeLegacyV1Result(): unknown {
+  const current = makeResult();
+  const legacySection = (key: string) => ({
+    ...current.sections.design,
+    meta: { ...current.sections.design.meta, key },
+  });
+  return {
+    ...current,
+    schema_version: '1.0',
+    scan: { ...current.scan, schema_version: '1.0' },
+    sections: {
+      design: legacySection('design'),
+      technology: legacySection('technology'),
+      security: legacySection('security'),
+      performance: legacySection('performance'),
+      accessibility: legacySection('accessibility'),
+      seo: legacySection('seo'),
+      architecture: legacySection('architecture'),
+      network: legacySection('network'),
+    },
+  };
 }
 
 // The same suite runs against both implementations: the in-memory fallback must behave like the
@@ -78,9 +109,9 @@ describe.each(implementations)('%s', (_name, create) => {
 
     expect(record).toBeDefined();
     expect(record?.host).toBe('example.test');
-    expect(record?.finding_count).toBe(2);
-    expect(record?.section_statuses.seo).toBe('complete');
-    expect(record?.section_statuses.design).toBe('not_implemented');
+    expect(record?.finding_count).toBe(9);
+    expect(record?.section_statuses.traffic).toBe('complete');
+    expect(record?.section_statuses.design).toBe('complete');
     expect(record?.result_bytes).toBeGreaterThan(0);
     // A projection, not the whole payload.
     expect(record).not.toHaveProperty('sections');
@@ -185,6 +216,47 @@ describe('IdbScanRepository durability', () => {
       expect(quarantined).toHaveLength(1);
       expect(quarantined[0]?.schema_version).toBe('9.9');
       expect(quarantined[0]?.reason).toContain('9.9');
+    } finally {
+      await fresh.close();
+    }
+  });
+
+  it('preserves a real V1 compact history row while quarantining its eight-section result', async () => {
+    const result = makeResult();
+    await repo.persist(result);
+    const compact = await repo.get(result.scan.scan_id);
+    await repo.close();
+
+    await putRawScan({
+      ...compact,
+      schema_version: '1.0',
+      section_statuses: {
+        design: 'complete',
+        technology: 'complete',
+        security: 'complete',
+        performance: 'complete',
+        accessibility: 'complete',
+        seo: 'complete',
+        architecture: 'complete',
+        network: 'complete',
+      },
+    });
+    await putRawResult(result.scan.scan_id, {
+      scan_id: result.scan.scan_id,
+      schema_version: '1.0',
+      result: makeLegacyV1Result(),
+    });
+
+    const fresh = new IdbScanRepository();
+    try {
+      const [historyRow] = await fresh.list();
+      expect(historyRow?.host).toBe('example.test');
+      expect(historyRow?.section_statuses.traffic).toBeUndefined();
+      expect(await fresh.getResult(result.scan.scan_id)).toBeUndefined();
+      const [quarantined] = await fresh.quarantined();
+      expect(quarantined?.schema_version).toBe('1.0');
+      expect(quarantined?.reason).toContain('V1 scan is preserved in history');
+      expect(quarantined?.reason).toContain('eight-section');
     } finally {
       await fresh.close();
     }

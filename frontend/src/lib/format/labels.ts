@@ -2,24 +2,16 @@ import type { SectionKey } from '@/types/analysis';
 
 const SECTION_LABELS: Record<SectionKey, string> = {
   design: 'Design',
-  technology: 'Technology',
+  technology: 'Tech Stack',
   security: 'Security',
-  performance: 'Performance',
-  accessibility: 'Accessibility',
-  seo: 'SEO',
-  architecture: 'Architecture',
-  network: 'Network',
+  traffic: 'Traffic',
 };
 
 const SECTION_SUMMARIES: Record<SectionKey, string> = {
-  design: 'Colours, typography, spacing and layout as actually rendered.',
-  technology: 'Products and frameworks detected from observable signals.',
-  security: 'Observable security configuration and posture score.',
-  performance: 'Timing and resource measurements from one lab run.',
-  accessibility: 'Automated rule results and structural observations.',
-  seo: 'Metadata, indexability and structured data as served.',
-  architecture: 'Rendering strategy, platform indicators and runtime signals.',
-  network: 'Requests, domains and transfer characteristics.',
+  design: 'Observed structure, visual system, responsive behavior and implementation clues.',
+  technology: 'Verified and inferred technologies, infrastructure and public backend signals.',
+  security: 'Passive security observations and posture, with scope and limitations.',
+  traffic: 'Provider-sourced popularity and traffic signals without fabricated estimates.',
 };
 
 export function sectionLabel(key: SectionKey): string {

@@ -5,7 +5,7 @@
  * size-limited, and writing megabytes to it would block the main thread. Reads are defensive - a
  * corrupt value resets to defaults rather than throwing during startup.
  */
-import type { SectionKey } from '@/types/analysis';
+import { sectionKeySchema, type SectionKey } from '@/types/analysis';
 
 export const PREFS_KEY = 'weblens.prefs.v1';
 
@@ -27,7 +27,7 @@ export interface Prefs {
 export const DEFAULT_PREFS: Prefs = {
   theme: 'system',
   density: 'comfortable',
-  default_section: 'seo',
+  default_section: 'design',
   show_evidence_by_default: false,
   last_scan_options: { include_screenshot: true, include_full_page_screenshot: false },
   history_retention: null,
@@ -84,6 +84,7 @@ function coerce(input: unknown): Prefs {
   if (!input || typeof input !== 'object') return { ...DEFAULT_PREFS };
   const raw = input as Record<string, unknown>;
   const options = (raw.last_scan_options ?? {}) as Record<string, unknown>;
+  const defaultSection = sectionKeySchema.safeParse(raw.default_section);
 
   return {
     theme: THEMES.includes(raw.theme as ThemePreference)
@@ -92,10 +93,7 @@ function coerce(input: unknown): Prefs {
     density: DENSITIES.includes(raw.density as Density)
       ? (raw.density as Density)
       : DEFAULT_PREFS.density,
-    default_section:
-      typeof raw.default_section === 'string'
-        ? (raw.default_section as SectionKey)
-        : DEFAULT_PREFS.default_section,
+    default_section: defaultSection.success ? defaultSection.data : DEFAULT_PREFS.default_section,
     show_evidence_by_default:
       typeof raw.show_evidence_by_default === 'boolean'
         ? raw.show_evidence_by_default

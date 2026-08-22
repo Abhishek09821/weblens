@@ -33,7 +33,7 @@ class ArchitecturePlatformAnalyzer:
     """Detects hosting and CDN platform from headers."""
 
     id = ANALYZER_ID
-    section = SectionKey.ARCHITECTURE
+    section = SectionKey.TECHNOLOGY
     version = "1.0.0"
     requires = frozenset({EvidenceSlot.HTTP, EvidenceSlot.DNS})
     depends_on: frozenset[str] = frozenset()

@@ -112,6 +112,26 @@ class Settings(BaseSettings):
     """Only ``none`` is accepted in V1. The provider protocol exists; no implementation
     ships in the default install path."""
 
+    # --- V2: Research and inference ---
+    search_provider: str = Field(default="none")
+    """Public research search provider name. ``none`` means research is skipped.
+    Supported: ``none``, ``brave``."""
+
+    brave_api_key: str = Field(default="")
+    """API key for Brave Search. Required when search_provider is 'brave'."""
+
+    inference_provider: str = Field(default="none")
+    """AI inference provider name. ``none`` means inference is skipped."""
+
+    inference_api_key: str = Field(default="")
+    """API key for the AI inference provider (e.g., OpenAI, Groq)."""
+
+    inference_model: str = Field(default="")
+    """Model name for the inference provider."""
+
+    traffic_provider: str = Field(default="none")
+    """Traffic data provider name. ``none`` means traffic data is unavailable."""
+
     @field_validator("cors_origins", "allowed_extra_ports", mode="before")
     @classmethod
     def _split_csv(cls, value: object) -> object:

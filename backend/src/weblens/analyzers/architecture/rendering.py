@@ -21,7 +21,7 @@ class ArchitectureRenderingAnalyzer:
     """Infers rendering strategy from observable signals."""
 
     id = ANALYZER_ID
-    section = SectionKey.ARCHITECTURE
+    section = SectionKey.TECHNOLOGY
     version = "1.0.0"
     requires = frozenset({EvidenceSlot.HTTP, EvidenceSlot.DOM, EvidenceSlot.RUNTIME})
     depends_on: frozenset[str] = frozenset()

@@ -276,17 +276,19 @@ class BrowserEvidenceCollector:
                 try:
                     browser_cookies = await context.cookies()
                     for cookie in browser_cookies:
-                        cookies_observed.append(CookieAttributes(
-                            name=cookie.get("name", ""),
-                            secure=cookie.get("secure", False),
-                            http_only=cookie.get("httpOnly", False),
-                            same_site=cookie.get("sameSite", None),
-                            domain=cookie.get("domain", None),
-                            path=cookie.get("path", None),
-                            expires_present=cookie.get("expires", -1) > 0,
-                            persistent=cookie.get("expires", -1) > 0,
-                            source_hop_url=redact_url(final_url),
-                        ))
+                        cookies_observed.append(
+                            CookieAttributes(
+                                name=cookie.get("name", ""),
+                                secure=cookie.get("secure", False),
+                                http_only=cookie.get("httpOnly", False),
+                                same_site=cookie.get("sameSite", None),
+                                domain=cookie.get("domain", None),
+                                path=cookie.get("path", None),
+                                expires_present=cookie.get("expires", -1) > 0,
+                                persistent=cookie.get("expires", -1) > 0,
+                                source_hop_url=redact_url(final_url),
+                            )
+                        )
                 except Exception:
                     logger.debug("cookie extraction from context failed")
                 http_obs = http_obs.model_copy(update={"cookies": cookies_observed})

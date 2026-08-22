@@ -10,7 +10,7 @@
  *   findings they came from, so they can never be mistaken for observations.
  */
 import { formatDuration, formatTimestamp } from '@/lib/format/values';
-import { findingStatusLabel } from '@/lib/format/status';
+import { findingStatusLabel, isAsserted } from '@/lib/format/status';
 import type {
   AnalysisResult,
   Finding,
@@ -18,6 +18,7 @@ import type {
   Section,
   SectionKey,
 } from '@/types/analysis';
+import { findingStatusToVerdict, verdictLabel } from '@/types/analysis';
 
 import {
   bullets,
@@ -30,7 +31,7 @@ import {
   table,
 } from './kit';
 
-export const GENERATOR = 'WebLens report generator 1.0';
+export const GENERATOR = 'WebLens report generator 2.0';
 
 export const STANDING_DISCLAIMER =
   'WebLens observes what a normal visit to a public URL reveals. It is passive: no forms were ' +
@@ -174,16 +175,18 @@ export function findingsBlock(ctx: RenderContext): string {
 function statusLegend(): string {
   return bullets([
     '**Verified** — directly observed in the collected evidence.',
+    '**Strongly inferred** — supported by multiple strong signals, but not directly confirmed.',
     '**Inferred** — derived from indirect signals; the signals are listed with the finding.',
+    '**AI inferred** — an AI-generated hypothesis grounded in listed evidence; never a verified fact.',
     '**Not detected** — evidence was collected and the signal was absent. This is not the same as "not used".',
     '**Not determinable** — the property cannot be observed from outside the site.',
-    '**Unable to verify** — the evidence needed for the check was not collected in this scan.',
+    '**Unable to verify** — the evidence needed for the check was unavailable in this scan.',
   ]);
 }
 
 function evidenceBlock(findings: Finding[], options: RenderOptions): string {
   const asserted = findings.filter(
-    (finding) => finding.evidence.length > 0 && (finding.status === 'verified' || finding.status === 'inferred'),
+    (finding) => finding.evidence.length > 0 && isAsserted(finding),
   );
   if (asserted.length === 0) return '';
 
@@ -294,4 +297,86 @@ export function humanize(value: string): string {
   return value
     .replace(/[_-]+/g, ' ')
     .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+// --- Evidence quality and AI verdict blocks for the new report format ---
+
+/**
+ * Evidence quality summary block for each section.
+ * Shows the quality gate assessment if available.
+ */
+export function evidenceQualityBlock(result: AnalysisResult, sectionKey: SectionKey): string {
+  const quality = result.quality;
+  if (!quality) return '';
+
+  const sectionQuality = quality.sections[sectionKey];
+  if (!sectionQuality) return '';
+
+  const aiMode = quality.ai_fallback_available
+    ? (quality.ai_fallback_sections.includes(sectionKey) ? 'AI Intelligence recommended' : 'Normal evidence sufficient')
+    : 'Normal evidence (AI not configured)';
+
+  return join(
+    heading(2, 'Evidence Quality'),
+    keyValueTable([
+      ['Quality band', humanize(sectionQuality.quality)],
+      ['Score', `${sectionQuality.score}/100`],
+      ['Analyzers', `${sectionQuality.analyzers_completed}/${sectionQuality.analyzers_total} completed`],
+      ['Verified findings', sectionQuality.findings_verified],
+      ['Inferred findings', sectionQuality.findings_inferred],
+      ['Negative findings', sectionQuality.findings_negative],
+      ['Analysis mode', aiMode],
+    ]),
+    sectionQuality.ai_fallback_recommended
+      ? `_${sectionQuality.reason}_`
+      : '',
+  );
+}
+
+/**
+ * AI/Research verdicts block for findings that came from AI inference.
+ * Only rendered when AI findings exist for the section.
+ */
+export function aiVerdictBlock(aiFindings: Finding[], title: string): string {
+  if (aiFindings.length === 0) {
+    return join(
+      heading(2, title),
+      '_No AI intelligence was applied to this section._',
+    );
+  }
+
+  const rows = aiFindings.map((finding) => {
+    const verdict = verdictLabel(findingStatusToVerdict(finding.status));
+    const reasoning = finding.evidence
+      .filter((e) => e.kind === 'ai_reasoning')
+      .map((e) => e.excerpt)
+      .filter(Boolean)
+      .join(' ');
+    const basis = finding.evidence
+      .flatMap((e) => {
+        const b = e.detail?.basis;
+        return typeof b === 'string' ? b.split(',').map((s: string) => s.trim()) : [];
+      })
+      .filter(Boolean)
+      .slice(0, 5)
+      .join(', ');
+
+    return [
+      finding.name,
+      verdict,
+      reasoning?.slice(0, 150) || '—',
+      basis || '—',
+      finding.limitations.join('; ') || '—',
+    ];
+  });
+
+  return join(
+    heading(2, title),
+    'These findings were produced by AI intelligence and are clearly marked as hypotheses. ' +
+    'They are based on observable evidence and public research, never fabricated.',
+    table(
+      ['Claim', 'Verdict', 'Reasoning', 'Basis', 'Limitations'],
+      rows,
+    ),
+  );
 }

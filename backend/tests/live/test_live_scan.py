@@ -65,14 +65,14 @@ async def test_live_scan_produces_a_structurally_valid_result(live_settings: Set
     assert stages["a11y_capture"]["status"] == "skipped"
     assert stages["a11y_capture"]["skip_reason"]
 
-    seo = result["sections"]["seo"]
+    seo = result["sections"]["technology"]
     assert seo["meta"]["status"] in ("complete", "partial")
     assert seo["findings"]
 
     for finding in seo["findings"]:
-        if finding["status"] in ("verified", "inferred"):
+        if finding["status"] in ("verified", "strongly_inferred", "inferred"):
             assert finding["evidence"], f"{finding['id']} asserted without evidence"
-        else:
+        elif finding["status"] not in ("ai_inferred",):
             assert finding["reason"], f"{finding['id']} negative without a reason"
 
 

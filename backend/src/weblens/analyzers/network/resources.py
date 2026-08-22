@@ -9,7 +9,7 @@ from weblens.analyzers.base import (
 )
 from weblens.domain.enums import Confidence, EvidenceKind, EvidenceSlot, SectionKey
 from weblens.domain.evidence import EvidenceRef
-from weblens.domain.sections import DomainSummary, NetworkPayload
+from weblens.domain.sections import DomainSummary, TechnologyPayload
 from weblens.utils.urls import registrable_suffix_match
 
 ANALYZER_ID = "network.resources"
@@ -19,7 +19,7 @@ class NetworkResourcesAnalyzer:
     """Produces the network request summary and domain breakdown."""
 
     id = ANALYZER_ID
-    section = SectionKey.NETWORK
+    section = SectionKey.TECHNOLOGY
     version = "1.0.0"
     requires = frozenset({EvidenceSlot.NETWORK})
     depends_on: frozenset[str] = frozenset()
@@ -79,9 +79,9 @@ class NetworkResourcesAnalyzer:
 
         return AnalyzerOutput(
             findings=findings,
-            data=NetworkPayload(
+            data=TechnologyPayload(
                 requests=network.requests,
                 by_domain=by_domain[:50],
-                cap_hit=network.cap_hit,
+                network_cap_hit=network.cap_hit,
             ),
         )

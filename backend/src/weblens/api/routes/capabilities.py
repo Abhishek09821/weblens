@@ -10,10 +10,13 @@ from __future__ import annotations
 from fastapi import APIRouter
 from pydantic import BaseModel, ConfigDict
 
+from weblens.ai.inference import get_inference_provider
+from weblens.analyzers.traffic.provider import get_traffic_provider
 from weblens.api.deps import SettingsDep
 from weblens.domain.enums import SectionKey
 from weblens.orchestration import registry
 from weblens.orchestration.stages import STAGES
+from weblens.research.base import get_provider as get_search_provider
 from weblens.version import ENGINE_VERSION, SCHEMA_VERSION
 
 router = APIRouter(tags=["meta"])
@@ -67,6 +70,9 @@ class CapabilitiesResponse(BaseModel):
     analyzers: list[AnalyzerCapability]
     stages: list[StageCapability]
     limits: ScanLimits
+    research_available: bool
+    inference_available: bool
+    traffic_provider_available: bool
 
 
 @router.get(
@@ -115,4 +121,7 @@ async def capabilities(settings: SettingsDep) -> CapabilitiesResponse:
             respect_robots=settings.respect_robots,
             probe_http_downgrade=settings.probe_http_downgrade,
         ),
+        research_available=get_search_provider(settings.search_provider).is_available,
+        inference_available=get_inference_provider(settings.inference_provider).is_available,
+        traffic_provider_available=get_traffic_provider(settings.traffic_provider).is_available,
     )

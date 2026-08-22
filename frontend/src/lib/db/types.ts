@@ -6,7 +6,7 @@ export const DB_NAME = 'weblens';
 export const DB_VERSION = 1;
 
 /** Shape version of stored records, independent of the IndexedDB integer version. */
-export const RECORD_SCHEMA_VERSION = '1.0';
+export const RECORD_SCHEMA_VERSION = '2.0';
 
 /**
  * Small projection that powers the scan library.

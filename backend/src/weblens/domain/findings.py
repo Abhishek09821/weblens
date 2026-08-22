@@ -17,7 +17,10 @@ from weblens.domain.evidence import EvidenceRef
 
 FindingValue = str | int | float | bool | None
 
-ASSERTED_STATUSES = frozenset({FindingStatus.VERIFIED, FindingStatus.INFERRED})
+ASSERTED_STATUSES = frozenset(
+    {FindingStatus.VERIFIED, FindingStatus.STRONGLY_INFERRED, FindingStatus.INFERRED}
+)
+AI_STATUSES = frozenset({FindingStatus.AI_INFERRED})
 NEGATIVE_STATUSES = frozenset(
     {
         FindingStatus.NOT_DETECTED,
@@ -63,6 +66,11 @@ class Finding(BaseModel):
             raise ValueError(
                 f"{self.id}: a '{self.status.value}' finding must carry at least one EvidenceRef"
             )
+        if self.status in AI_STATUSES and not self.evidence:
+            raise ValueError(
+                f"{self.id}: an '{self.status.value}' finding must carry at least one EvidenceRef "
+                "documenting the reasoning or research basis"
+            )
         if self.status in NEGATIVE_STATUSES and not self.reason:
             raise ValueError(f"{self.id}: a '{self.status.value}' finding must state a reason")
         return self
@@ -70,6 +78,10 @@ class Finding(BaseModel):
     @property
     def is_asserted(self) -> bool:
         return self.status in ASSERTED_STATUSES
+
+    @property
+    def is_ai_derived(self) -> bool:
+        return self.status in AI_STATUSES
 
 
 class Interpretation(BaseModel):

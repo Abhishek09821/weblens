@@ -11,14 +11,24 @@ import {
 import { cn } from '@/lib/utils';
 import type { FindingStatus, SectionStatus } from '@/types/analysis';
 
-const TONE_VARIANT: Record<StatusTone, 'verified' | 'inferred' | 'neutral' | 'attention' | 'muted'> =
-  {
-    verified: 'verified',
-    inferred: 'inferred',
-    neutral: 'neutral',
-    attention: 'attention',
-    muted: 'muted',
-  };
+const TONE_VARIANT: Record<
+  StatusTone,
+  | 'verified'
+  | 'stronglyInferred'
+  | 'inferred'
+  | 'aiInferred'
+  | 'neutral'
+  | 'attention'
+  | 'muted'
+> = {
+  verified: 'verified',
+  'strongly-inferred': 'stronglyInferred',
+  inferred: 'inferred',
+  'ai-inferred': 'aiInferred',
+  neutral: 'neutral',
+  attention: 'attention',
+  muted: 'muted',
+};
 
 /**
  * Finding status, always as words.

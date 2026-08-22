@@ -10,30 +10,37 @@ from enum import StrEnum
 
 
 class SectionKey(StrEnum):
-    """The eight report sections. Order here is the canonical presentation order."""
+    """The four user-facing report sections. Order here is the canonical presentation order.
+
+    V2 consolidated eight sections into four. Architecture, network, performance, SEO, and
+    accessibility evidence still feeds the remaining sections internally but is no longer
+    exposed as standalone user-facing reports.
+    """
 
     DESIGN = "design"
     TECHNOLOGY = "technology"
     SECURITY = "security"
-    PERFORMANCE = "performance"
-    ACCESSIBILITY = "accessibility"
-    SEO = "seo"
-    ARCHITECTURE = "architecture"
-    NETWORK = "network"
+    TRAFFIC = "traffic"
 
 
 class FindingStatus(StrEnum):
     """User-facing certainty of a finding.
 
-    The three negative states are deliberately distinct: they answer different questions
+    The negative states are deliberately distinct: they answer different questions
     and conflating them is how a tool starts making things up.
     """
 
     VERIFIED = "verified"
     """Directly observed in collected evidence."""
 
+    STRONGLY_INFERRED = "strongly_inferred"
+    """Multiple independent signals strongly support the claim."""
+
     INFERRED = "inferred"
     """Derived from indirect or weak signals. The signal is always shown alongside."""
+
+    AI_INFERRED = "ai_inferred"
+    """AI-produced hypothesis based on evidence and/or public research. Never verified."""
 
     NOT_DETECTED = "not_detected"
     """Evidence was available and the signal was absent. Not the same as 'not used'."""
@@ -83,6 +90,8 @@ class EvidenceKind(StrEnum):
     AXE_RESULT = "axe_result"
     CONSOLE_MESSAGE = "console_message"
     DOM_MEASUREMENT = "dom_measurement"
+    RESEARCH_SOURCE = "research_source"
+    AI_REASONING = "ai_reasoning"
 
 
 class EvidenceSlot(StrEnum):
@@ -106,6 +115,7 @@ class EvidenceSlot(StrEnum):
     VIEWPORTS = "viewports"
     SCREENSHOTS = "screenshots"
     CONSOLE = "console"
+    RESEARCH = "research"
 
 
 class SectionStatus(StrEnum):
@@ -114,6 +124,9 @@ class SectionStatus(StrEnum):
 
     PARTIAL = "partial"
     """Some analyzers ran; others failed, timed out, or lacked evidence."""
+
+    INSUFFICIENT_EVIDENCE = "insufficient_evidence"
+    """Analyzers ran but produced too little useful evidence for a meaningful report."""
 
     UNAVAILABLE = "unavailable"
     """No analyzer could produce output. ``unavailable_reason`` explains why."""
@@ -175,6 +188,8 @@ class StageKey(StrEnum):
     RESPONSIVE_PROBE = "responsive_probe"
     SCREENSHOT = "screenshot"
     ANALYZE = "analyze"
+    RESEARCH = "research"
+    INFERENCE = "inference"
     ASSEMBLE = "assemble"
 
 

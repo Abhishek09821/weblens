@@ -7,11 +7,20 @@
  */
 import type { Finding, FindingStatus, SectionStatus } from '@/types/analysis';
 
-export type StatusTone = 'verified' | 'inferred' | 'neutral' | 'attention' | 'muted';
+export type StatusTone =
+  | 'verified'
+  | 'strongly-inferred'
+  | 'inferred'
+  | 'ai-inferred'
+  | 'neutral'
+  | 'attention'
+  | 'muted';
 
 const FINDING_STATUS_LABELS: Record<FindingStatus, string> = {
   verified: 'Verified',
+  strongly_inferred: 'Strongly inferred',
   inferred: 'Inferred',
+  ai_inferred: 'AI inferred',
   not_detected: 'Not detected',
   not_determinable: 'Not determinable',
   unable_to_verify: 'Unable to verify',
@@ -19,23 +28,28 @@ const FINDING_STATUS_LABELS: Record<FindingStatus, string> = {
 
 const FINDING_STATUS_TONES: Record<FindingStatus, StatusTone> = {
   verified: 'verified',
+  strongly_inferred: 'strongly-inferred',
   inferred: 'inferred',
+  ai_inferred: 'ai-inferred',
   not_detected: 'neutral',
-  not_determinable: 'neutral',
-  unable_to_verify: 'muted',
+  not_determinable: 'muted',
+  unable_to_verify: 'attention',
 };
 
 const FINDING_STATUS_HELP: Record<FindingStatus, string> = {
-  verified: 'Directly observed in the evidence collected from this page.',
-  inferred: 'Derived from indirect signals. The signals are listed with the finding.',
+  verified: 'Directly observed in evidence collected from this page.',
+  strongly_inferred: 'Supported by multiple strong public or page-level signals, but not directly confirmed.',
+  inferred: 'Derived from indirect signals. The supporting evidence is listed with the finding.',
+  ai_inferred: 'An AI-generated hypothesis grounded in listed evidence; it is not a verified fact.',
   not_detected: 'Evidence was collected and this signal was absent. Not the same as "not used".',
-  not_determinable: 'This property cannot be observed from outside the site.',
-  unable_to_verify: 'The evidence needed for this check was not collected in this scan.',
+  not_determinable: 'This property cannot be determined from public observations.',
+  unable_to_verify: 'The evidence needed for this check was unavailable in this scan.',
 };
 
 const SECTION_STATUS_LABELS: Record<SectionStatus, string> = {
   complete: 'Complete',
   partial: 'Partial',
+  insufficient_evidence: 'Insufficient evidence',
   unavailable: 'Unavailable',
   not_implemented: 'Not in this build',
   skipped: 'Skipped',
@@ -44,6 +58,7 @@ const SECTION_STATUS_LABELS: Record<SectionStatus, string> = {
 const SECTION_STATUS_TONES: Record<SectionStatus, StatusTone> = {
   complete: 'verified',
   partial: 'inferred',
+  insufficient_evidence: 'attention',
   unavailable: 'attention',
   not_implemented: 'muted',
   skipped: 'muted',
@@ -70,11 +85,16 @@ export function sectionStatusTone(status: SectionStatus): StatusTone {
 }
 
 export function isAsserted(finding: Finding): boolean {
-  return finding.status === 'verified' || finding.status === 'inferred';
+  return (
+    finding.status === 'verified' ||
+    finding.status === 'strongly_inferred' ||
+    finding.status === 'inferred' ||
+    finding.status === 'ai_inferred'
+  );
 }
 
 export function sectionIsRenderable(status: SectionStatus): boolean {
-  return status === 'complete' || status === 'partial';
+  return status === 'complete' || status === 'partial' || status === 'insufficient_evidence';
 }
 
 /**
@@ -100,8 +120,12 @@ export function statusToneClass(tone: StatusTone): string {
   switch (tone) {
     case 'verified':
       return 'bg-status-verified';
+    case 'strongly-inferred':
+      return 'bg-status-strongly-inferred';
     case 'inferred':
       return 'bg-status-inferred';
+    case 'ai-inferred':
+      return 'bg-status-ai-inferred';
     case 'attention':
       return 'bg-status-attention';
     case 'neutral':

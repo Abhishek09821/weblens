@@ -1,29 +1,6 @@
 {
   "components": {
     "schemas": {
-      "AccessibilityPayload": {
-        "additionalProperties": false,
-        "description": "Phase 5. No score, by design: violation counts are not a conformance measure.",
-        "properties": {
-          "axe": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/AxeObservation"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "coverage_note": {
-            "default": "Automated rules detect a subset of WCAG issues. A clean result does not mean a site is accessible; conformance requires manual testing and expert review.",
-            "title": "Coverage Note",
-            "type": "string"
-          }
-        },
-        "title": "AccessibilityPayload",
-        "type": "object"
-      },
       "AnalysisResult": {
         "additionalProperties": false,
         "properties": {
@@ -41,11 +18,22 @@
             "title": "Limitations",
             "type": "array"
           },
+          "quality": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ScanQuality"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Evidence quality assessment. Determines whether AI fallback is recommended."
+          },
           "scan": {
             "$ref": "#/components/schemas/ScanMetadata"
           },
           "schema_version": {
-            "default": "1.0",
+            "default": "2.0",
             "title": "Schema Version",
             "type": "string"
           },
@@ -221,25 +209,6 @@
           "reason"
         ],
         "title": "AppliedCap",
-        "type": "object"
-      },
-      "ArchitecturePayload": {
-        "additionalProperties": false,
-        "description": "Phase 3. Rendering strategy signals, platform indicators, runtime observations.",
-        "properties": {
-          "static_vs_rendered_element_delta": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Static Vs Rendered Element Delta"
-          }
-        },
-        "title": "ArchitecturePayload",
         "type": "object"
       },
       "AxeNode": {
@@ -490,8 +459,16 @@
             "title": "Engine Version",
             "type": "string"
           },
+          "inference_available": {
+            "title": "Inference Available",
+            "type": "boolean"
+          },
           "limits": {
             "$ref": "#/components/schemas/ScanLimits"
+          },
+          "research_available": {
+            "title": "Research Available",
+            "type": "boolean"
           },
           "schema_version": {
             "title": "Schema Version",
@@ -510,6 +487,10 @@
             },
             "title": "Stages",
             "type": "array"
+          },
+          "traffic_provider_available": {
+            "title": "Traffic Provider Available",
+            "type": "boolean"
           }
         },
         "required": [
@@ -519,7 +500,10 @@
           "sections",
           "analyzers",
           "stages",
-          "limits"
+          "limits",
+          "research_available",
+          "inference_available",
+          "traffic_provider_available"
         ],
         "title": "CapabilitiesResponse",
         "type": "object"
@@ -537,8 +521,18 @@
       },
       "DesignPayload": {
         "additionalProperties": false,
-        "description": "Phase 4. Palette, typography, spacing/radius/shadow scales, layout, media, motion.\n\n``coverage`` is declared now because every design claim must be reported alongside the\nsample it came from.",
+        "description": "Recreation-oriented design data. coverage reports sample quality.",
         "properties": {
+          "axe": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AxeObservation"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "coverage": {
             "anyOf": [
               {
@@ -708,9 +702,22 @@
           "performance_entry",
           "axe_result",
           "console_message",
-          "dom_measurement"
+          "dom_measurement",
+          "research_source",
+          "ai_reasoning"
         ],
         "title": "EvidenceKind",
+        "type": "string"
+      },
+      "EvidenceQuality": {
+        "description": "Quality band for a section or the overall scan.",
+        "enum": [
+          "high",
+          "medium",
+          "low",
+          "failed"
+        ],
+        "title": "EvidenceQuality",
         "type": "string"
       },
       "EvidenceRef": {
@@ -1044,10 +1051,12 @@
         "type": "object"
       },
       "FindingStatus": {
-        "description": "User-facing certainty of a finding.\n\nThe three negative states are deliberately distinct: they answer different questions\nand conflating them is how a tool starts making things up.",
+        "description": "User-facing certainty of a finding.\n\nThe negative states are deliberately distinct: they answer different questions\nand conflating them is how a tool starts making things up.",
         "enum": [
           "verified",
+          "strongly_inferred",
           "inferred",
+          "ai_inferred",
           "not_detected",
           "not_determinable",
           "unable_to_verify"
@@ -1183,7 +1192,6 @@
       },
       "IndexabilityObservation": {
         "additionalProperties": false,
-        "description": "Phase 3.",
         "properties": {
           "canonical_is_self_referential": {
             "anyOf": [
@@ -1238,6 +1246,153 @@
           }
         },
         "title": "IndexabilityObservation",
+        "type": "object"
+      },
+      "IntelligenceRequest": {
+        "additionalProperties": false,
+        "description": "Request body for the AI intelligence fallback.",
+        "properties": {
+          "additional_context": {
+            "anyOf": [
+              {
+                "maxLength": 5000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional user-provided public context (engineering blog URLs, GitHub repos, etc.)",
+            "title": "Additional Context"
+          },
+          "sections": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/SectionKey"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Sections to enhance with AI. None means all sections where AI is recommended.",
+            "title": "Sections"
+          }
+        },
+        "title": "IntelligenceRequest",
+        "type": "object"
+      },
+      "IntelligenceResponse": {
+        "additionalProperties": false,
+        "description": "Response from the AI intelligence fallback.",
+        "properties": {
+          "findings_added": {
+            "title": "Findings Added",
+            "type": "integer"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Limitations",
+            "type": "array"
+          },
+          "mode": {
+            "default": "ai_intelligence_fallback",
+            "description": "Analysis mode. Always 'ai_intelligence_fallback' for this endpoint.",
+            "title": "Mode",
+            "type": "string"
+          },
+          "quality_after": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ScanQuality"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "quality_before": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ScanQuality"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "research_available": {
+            "title": "Research Available",
+            "type": "boolean"
+          },
+          "research_performed": {
+            "title": "Research Performed",
+            "type": "boolean"
+          },
+          "scan_id": {
+            "title": "Scan Id",
+            "type": "string"
+          },
+          "sections_enhanced": {
+            "items": {
+              "$ref": "#/components/schemas/SectionKey"
+            },
+            "title": "Sections Enhanced",
+            "type": "array"
+          }
+        },
+        "required": [
+          "scan_id",
+          "sections_enhanced",
+          "research_performed",
+          "research_available",
+          "findings_added"
+        ],
+        "title": "IntelligenceResponse",
+        "type": "object"
+      },
+      "IntelligenceStatus": {
+        "additionalProperties": false,
+        "description": "Status of the AI intelligence run.",
+        "properties": {
+          "available": {
+            "description": "Whether AI intelligence is configured and available.",
+            "title": "Available",
+            "type": "boolean"
+          },
+          "inference_available": {
+            "description": "Whether an AI inference provider is configured.",
+            "title": "Inference Available",
+            "type": "boolean"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Explanation when AI is not available.",
+            "title": "Reason"
+          },
+          "research_available": {
+            "description": "Whether a search provider is configured.",
+            "title": "Research Available",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "available",
+          "research_available",
+          "inference_available"
+        ],
+        "title": "IntelligenceStatus",
         "type": "object"
       },
       "Interpretation": {
@@ -1491,33 +1646,6 @@
           "grounded_in"
         ],
         "title": "Narrative",
-        "type": "object"
-      },
-      "NetworkPayload": {
-        "additionalProperties": false,
-        "description": "Phase 3.",
-        "properties": {
-          "by_domain": {
-            "items": {
-              "$ref": "#/components/schemas/DomainSummary"
-            },
-            "title": "By Domain",
-            "type": "array"
-          },
-          "cap_hit": {
-            "default": false,
-            "title": "Cap Hit",
-            "type": "boolean"
-          },
-          "requests": {
-            "items": {
-              "$ref": "#/components/schemas/NetworkRequestRecord"
-            },
-            "title": "Requests",
-            "type": "array"
-          }
-        },
-        "title": "NetworkPayload",
         "type": "object"
       },
       "NetworkRequestRecord": {
@@ -1850,24 +1978,6 @@
           }
         },
         "title": "PerformanceObservation",
-        "type": "object"
-      },
-      "PerformancePayload": {
-        "additionalProperties": false,
-        "description": "Phase 5. Run context lives on scan metadata and applies to every metric here.",
-        "properties": {
-          "timings": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/PerformanceObservation"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          }
-        },
-        "title": "PerformancePayload",
         "type": "object"
       },
       "PostureBand": {
@@ -2464,7 +2574,7 @@
             "type": "string"
           },
           "schema_version": {
-            "default": "1.0",
+            "default": "2.0",
             "title": "Schema Version",
             "type": "string"
           },
@@ -2544,6 +2654,52 @@
         "title": "ScanOptions",
         "type": "object"
       },
+      "ScanQuality": {
+        "additionalProperties": false,
+        "description": "Overall scan quality assessment across all four sections.",
+        "properties": {
+          "ai_fallback_available": {
+            "description": "Whether at least one section would benefit from AI fallback.",
+            "title": "Ai Fallback Available",
+            "type": "boolean"
+          },
+          "ai_fallback_sections": {
+            "description": "Sections where AI fallback is recommended.",
+            "items": {
+              "$ref": "#/components/schemas/SectionKey"
+            },
+            "title": "Ai Fallback Sections",
+            "type": "array"
+          },
+          "overall": {
+            "$ref": "#/components/schemas/EvidenceQuality"
+          },
+          "overall_score": {
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Overall Score",
+            "type": "integer"
+          },
+          "sections": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/SectionQuality"
+            },
+            "propertyNames": {
+              "$ref": "#/components/schemas/SectionKey"
+            },
+            "title": "Sections",
+            "type": "object"
+          }
+        },
+        "required": [
+          "overall",
+          "overall_score",
+          "sections",
+          "ai_fallback_available"
+        ],
+        "title": "ScanQuality",
+        "type": "object"
+      },
       "ScanRequest": {
         "additionalProperties": false,
         "properties": {
@@ -2612,16 +2768,12 @@
         "type": "object"
       },
       "SectionKey": {
-        "description": "The eight report sections. Order here is the canonical presentation order.",
+        "description": "The four user-facing report sections. Order here is the canonical presentation order.\n\nV2 consolidated eight sections into four. Architecture, network, performance, SEO, and\naccessibility evidence still feeds the remaining sections internally but is no longer\nexposed as standalone user-facing reports.",
         "enum": [
           "design",
           "technology",
           "security",
-          "performance",
-          "accessibility",
-          "seo",
-          "architecture",
-          "network"
+          "traffic"
         ],
         "title": "SectionKey",
         "type": "string"
@@ -2668,44 +2820,90 @@
         "title": "SectionMeta",
         "type": "object"
       },
+      "SectionQuality": {
+        "additionalProperties": false,
+        "description": "Quality assessment for one section.",
+        "properties": {
+          "ai_fallback_recommended": {
+            "title": "Ai Fallback Recommended",
+            "type": "boolean"
+          },
+          "analyzers_completed": {
+            "title": "Analyzers Completed",
+            "type": "integer"
+          },
+          "analyzers_total": {
+            "title": "Analyzers Total",
+            "type": "integer"
+          },
+          "findings_inferred": {
+            "title": "Findings Inferred",
+            "type": "integer"
+          },
+          "findings_negative": {
+            "title": "Findings Negative",
+            "type": "integer"
+          },
+          "findings_verified": {
+            "title": "Findings Verified",
+            "type": "integer"
+          },
+          "quality": {
+            "$ref": "#/components/schemas/EvidenceQuality"
+          },
+          "reason": {
+            "description": "Human-readable explanation of the quality assessment.",
+            "title": "Reason",
+            "type": "string"
+          },
+          "score": {
+            "description": "Numeric score 0-100.",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Score",
+            "type": "integer"
+          },
+          "section": {
+            "$ref": "#/components/schemas/SectionKey"
+          }
+        },
+        "required": [
+          "section",
+          "quality",
+          "score",
+          "analyzers_completed",
+          "analyzers_total",
+          "findings_verified",
+          "findings_inferred",
+          "findings_negative",
+          "ai_fallback_recommended",
+          "reason"
+        ],
+        "title": "SectionQuality",
+        "type": "object"
+      },
       "SectionSet": {
         "additionalProperties": false,
-        "description": "All eight sections, as explicit fields so both sides of the wire stay typed.",
+        "description": "The four V2 report sections.",
         "properties": {
-          "accessibility": {
-            "$ref": "#/components/schemas/Section_AccessibilityPayload_"
-          },
-          "architecture": {
-            "$ref": "#/components/schemas/Section_ArchitecturePayload_"
-          },
           "design": {
             "$ref": "#/components/schemas/Section_DesignPayload_"
-          },
-          "network": {
-            "$ref": "#/components/schemas/Section_NetworkPayload_"
-          },
-          "performance": {
-            "$ref": "#/components/schemas/Section_PerformancePayload_"
           },
           "security": {
             "$ref": "#/components/schemas/Section_SecurityPayload_"
           },
-          "seo": {
-            "$ref": "#/components/schemas/Section_SeoPayload_"
-          },
           "technology": {
             "$ref": "#/components/schemas/Section_TechnologyPayload_"
+          },
+          "traffic": {
+            "$ref": "#/components/schemas/Section_TrafficPayload_"
           }
         },
         "required": [
           "design",
           "technology",
           "security",
-          "performance",
-          "accessibility",
-          "seo",
-          "architecture",
-          "network"
+          "traffic"
         ],
         "title": "SectionSet",
         "type": "object"
@@ -2714,86 +2912,13 @@
         "enum": [
           "complete",
           "partial",
+          "insufficient_evidence",
           "unavailable",
           "not_implemented",
           "skipped"
         ],
         "title": "SectionStatus",
         "type": "string"
-      },
-      "Section_AccessibilityPayload_": {
-        "additionalProperties": false,
-        "properties": {
-          "data": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/AccessibilityPayload"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "findings": {
-            "items": {
-              "$ref": "#/components/schemas/Finding"
-            },
-            "title": "Findings",
-            "type": "array"
-          },
-          "interpretations": {
-            "items": {
-              "$ref": "#/components/schemas/Interpretation"
-            },
-            "title": "Interpretations",
-            "type": "array"
-          },
-          "meta": {
-            "$ref": "#/components/schemas/SectionMeta"
-          }
-        },
-        "required": [
-          "meta"
-        ],
-        "title": "Section[AccessibilityPayload]",
-        "type": "object"
-      },
-      "Section_ArchitecturePayload_": {
-        "additionalProperties": false,
-        "properties": {
-          "data": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ArchitecturePayload"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "findings": {
-            "items": {
-              "$ref": "#/components/schemas/Finding"
-            },
-            "title": "Findings",
-            "type": "array"
-          },
-          "interpretations": {
-            "items": {
-              "$ref": "#/components/schemas/Interpretation"
-            },
-            "title": "Interpretations",
-            "type": "array"
-          },
-          "meta": {
-            "$ref": "#/components/schemas/SectionMeta"
-          }
-        },
-        "required": [
-          "meta"
-        ],
-        "title": "Section[ArchitecturePayload]",
-        "type": "object"
       },
       "Section_DesignPayload_": {
         "additionalProperties": false,
@@ -2830,80 +2955,6 @@
           "meta"
         ],
         "title": "Section[DesignPayload]",
-        "type": "object"
-      },
-      "Section_NetworkPayload_": {
-        "additionalProperties": false,
-        "properties": {
-          "data": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/NetworkPayload"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "findings": {
-            "items": {
-              "$ref": "#/components/schemas/Finding"
-            },
-            "title": "Findings",
-            "type": "array"
-          },
-          "interpretations": {
-            "items": {
-              "$ref": "#/components/schemas/Interpretation"
-            },
-            "title": "Interpretations",
-            "type": "array"
-          },
-          "meta": {
-            "$ref": "#/components/schemas/SectionMeta"
-          }
-        },
-        "required": [
-          "meta"
-        ],
-        "title": "Section[NetworkPayload]",
-        "type": "object"
-      },
-      "Section_PerformancePayload_": {
-        "additionalProperties": false,
-        "properties": {
-          "data": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/PerformancePayload"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "findings": {
-            "items": {
-              "$ref": "#/components/schemas/Finding"
-            },
-            "title": "Findings",
-            "type": "array"
-          },
-          "interpretations": {
-            "items": {
-              "$ref": "#/components/schemas/Interpretation"
-            },
-            "title": "Interpretations",
-            "type": "array"
-          },
-          "meta": {
-            "$ref": "#/components/schemas/SectionMeta"
-          }
-        },
-        "required": [
-          "meta"
-        ],
-        "title": "Section[PerformancePayload]",
         "type": "object"
       },
       "Section_SecurityPayload_": {
@@ -2943,43 +2994,6 @@
         "title": "Section[SecurityPayload]",
         "type": "object"
       },
-      "Section_SeoPayload_": {
-        "additionalProperties": false,
-        "properties": {
-          "data": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/SeoPayload"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "findings": {
-            "items": {
-              "$ref": "#/components/schemas/Finding"
-            },
-            "title": "Findings",
-            "type": "array"
-          },
-          "interpretations": {
-            "items": {
-              "$ref": "#/components/schemas/Interpretation"
-            },
-            "title": "Interpretations",
-            "type": "array"
-          },
-          "meta": {
-            "$ref": "#/components/schemas/SectionMeta"
-          }
-        },
-        "required": [
-          "meta"
-        ],
-        "title": "Section[SeoPayload]",
-        "type": "object"
-      },
       "Section_TechnologyPayload_": {
         "additionalProperties": false,
         "properties": {
@@ -3017,6 +3031,43 @@
         "title": "Section[TechnologyPayload]",
         "type": "object"
       },
+      "Section_TrafficPayload_": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TrafficPayload"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "findings": {
+            "items": {
+              "$ref": "#/components/schemas/Finding"
+            },
+            "title": "Findings",
+            "type": "array"
+          },
+          "interpretations": {
+            "items": {
+              "$ref": "#/components/schemas/Interpretation"
+            },
+            "title": "Interpretations",
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/SectionMeta"
+          }
+        },
+        "required": [
+          "meta"
+        ],
+        "title": "Section[TrafficPayload]",
+        "type": "object"
+      },
       "SecurityCategory": {
         "enum": [
           "transport",
@@ -3030,7 +3081,7 @@
       },
       "SecurityPayload": {
         "additionalProperties": false,
-        "description": "Phase 2. ``score`` is the only score in the whole domain model (axiom A4).",
+        "description": "``score`` is the only score in the whole domain model (axiom A4).",
         "properties": {
           "headers": {
             "items": {
@@ -3199,40 +3250,6 @@
         "title": "SecurityScore",
         "type": "object"
       },
-      "SeoPayload": {
-        "additionalProperties": false,
-        "properties": {
-          "indexability": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/IndexabilityObservation"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "metadata": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/MetadataObservation"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "structured_data": {
-            "items": {
-              "$ref": "#/components/schemas/StructuredDataBlock"
-            },
-            "title": "Structured Data",
-            "type": "array"
-          }
-        },
-        "title": "SeoPayload",
-        "type": "object"
-      },
       "StageCapability": {
         "additionalProperties": false,
         "properties": {
@@ -3286,6 +3303,8 @@
           "responsive_probe",
           "screenshot",
           "analyze",
+          "research",
+          "inference",
           "assemble"
         ],
         "title": "StageKey",
@@ -3479,14 +3498,30 @@
       "SummarizeRequest": {
         "additionalProperties": false,
         "properties": {
+          "result_data": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Result Data"
+          },
           "scan_id": {
-            "title": "Scan Id",
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scan Id"
           }
         },
-        "required": [
-          "scan_id"
-        ],
         "title": "SummarizeRequest",
         "type": "object"
       },
@@ -3625,17 +3660,109 @@
       },
       "TechnologyPayload": {
         "additionalProperties": false,
-        "description": "Phase 3.",
+        "description": "Consolidated technology + architecture + network + performance + SEO data.",
         "properties": {
+          "by_domain": {
+            "items": {
+              "$ref": "#/components/schemas/DomainSummary"
+            },
+            "title": "By Domain",
+            "type": "array"
+          },
+          "indexability": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/IndexabilityObservation"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "metadata": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MetadataObservation"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "network_cap_hit": {
+            "default": false,
+            "title": "Network Cap Hit",
+            "type": "boolean"
+          },
           "products": {
             "items": {
               "$ref": "#/components/schemas/DetectedProduct"
             },
             "title": "Products",
             "type": "array"
+          },
+          "requests": {
+            "items": {
+              "$ref": "#/components/schemas/NetworkRequestRecord"
+            },
+            "title": "Requests",
+            "type": "array"
+          },
+          "static_vs_rendered_element_delta": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Static Vs Rendered Element Delta"
+          },
+          "structured_data": {
+            "items": {
+              "$ref": "#/components/schemas/StructuredDataBlock"
+            },
+            "title": "Structured Data",
+            "type": "array"
+          },
+          "timings": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PerformanceObservation"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "title": "TechnologyPayload",
+        "type": "object"
+      },
+      "TrafficPayload": {
+        "additionalProperties": false,
+        "description": "Traffic and popularity intelligence from external public data sources.",
+        "properties": {
+          "provider_available": {
+            "default": false,
+            "title": "Provider Available",
+            "type": "boolean"
+          },
+          "provider_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Which traffic provider was used, or None if unavailable.",
+            "title": "Provider Name"
+          }
+        },
+        "title": "TrafficPayload",
         "type": "object"
       },
       "ValidationError": {
@@ -3963,6 +4090,108 @@
         "summary": "Server-sent events for scan progress",
         "tags": [
           "scans"
+        ]
+      }
+    },
+    "/api/v1/scans/{scan_id}/intelligence": {
+      "post": {
+        "description": "Trigger AI intelligence for sections with insufficient evidence.\n\nThis endpoint is user-initiated and never runs automatically. It:\n1. Reads the existing deterministic scan result\n2. Runs public web research (if a search provider is configured)\n3. Runs AI inference to fill gaps in the specified sections\n4. Updates the stored result with AI-inferred findings (clearly marked)\n\nAI findings NEVER overwrite or modify verified/deterministic findings.",
+        "operationId": "run_intelligence_api_v1_scans__scan_id__intelligence_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "scan_id",
+            "required": true,
+            "schema": {
+              "title": "Scan Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IntelligenceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntelligenceResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "409": {
+            "description": "The scan has not finished yet."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "501": {
+            "description": "No AI provider is configured."
+          }
+        },
+        "summary": "Run AI intelligence fallback on an existing scan",
+        "tags": [
+          "intelligence"
+        ]
+      }
+    },
+    "/api/v1/scans/{scan_id}/intelligence/status": {
+      "get": {
+        "description": "Check whether AI intelligence can be triggered for this scan.\n\nReturns availability information without spending any API credits.",
+        "operationId": "intelligence_status_api_v1_scans__scan_id__intelligence_status_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "scan_id",
+            "required": true,
+            "schema": {
+              "title": "Scan Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntelligenceStatus"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Check if AI intelligence fallback is available",
+        "tags": [
+          "intelligence"
         ]
       }
     },

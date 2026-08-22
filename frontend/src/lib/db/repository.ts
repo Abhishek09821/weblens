@@ -178,7 +178,9 @@ export class IdbScanRepository implements ScanRepository {
       schema_version: schemaVersion,
       reason:
         reason ??
-        `Saved by a WebLens build using schema ${schemaVersion}; this build reads ${RECORD_SCHEMA_VERSION}.`,
+        (schemaVersion === '1.0'
+          ? 'This V1 scan is preserved in history but its eight-section result is incompatible with the V2 four-report model. Run a new scan to view reports.'
+          : `Saved by a WebLens build using schema ${schemaVersion}; this build reads ${RECORD_SCHEMA_VERSION}.`),
     };
     await this.setMeta('quarantine', [...existing, entry]);
   }

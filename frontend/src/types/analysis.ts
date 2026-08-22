@@ -13,23 +13,16 @@
  */
 import { z } from 'zod';
 
-export const SECTION_KEYS = [
-  'design',
-  'technology',
-  'security',
-  'performance',
-  'accessibility',
-  'seo',
-  'architecture',
-  'network',
-] as const;
+export const SECTION_KEYS = ['design', 'technology', 'security', 'traffic'] as const;
 
 export const sectionKeySchema = z.enum(SECTION_KEYS);
 export type SectionKey = z.infer<typeof sectionKeySchema>;
 
 export const findingStatusSchema = z.enum([
   'verified',
+  'strongly_inferred',
   'inferred',
+  'ai_inferred',
   'not_detected',
   'not_determinable',
   'unable_to_verify',
@@ -39,6 +32,7 @@ export type FindingStatus = z.infer<typeof findingStatusSchema>;
 export const sectionStatusSchema = z.enum([
   'complete',
   'partial',
+  'insufficient_evidence',
   'unavailable',
   'not_implemented',
   'skipped',
@@ -186,6 +180,38 @@ export const securityScoreSchema = z.object({
 });
 export type SecurityScore = z.infer<typeof securityScoreSchema>;
 
+export const designPayloadSchema = z.object({
+  coverage: z
+    .object({
+      cap_hit: z.boolean(),
+      elements_sampled: z.number(),
+      elements_total: z.number().nullish(),
+    })
+    .nullish(),
+  axe: z.unknown().nullish(),
+});
+export type DesignPayload = z.infer<typeof designPayloadSchema>;
+
+export const securityPayloadSchema = z.object({
+  score: securityScoreSchema.nullish(),
+  headers: z
+    .array(
+      z.object({
+        name: z.string(),
+        present: z.boolean(),
+        value: z.string().nullish(),
+      }),
+    )
+    .default([]),
+});
+export type SecurityPayload = z.infer<typeof securityPayloadSchema>;
+
+export const trafficPayloadSchema = z.object({
+  provider_name: z.string().nullish(),
+  provider_available: z.boolean().default(false),
+});
+export type TrafficPayload = z.infer<typeof trafficPayloadSchema>;
+
 // --- scan envelope ----------------------------------------------------------------------
 
 export const viewportSchema = z.object({ width: z.number(), height: z.number() });
@@ -300,19 +326,46 @@ export const sectionSetSchema = z.object({
   design: sectionSchema,
   technology: sectionSchema,
   security: sectionSchema,
-  performance: sectionSchema,
-  accessibility: sectionSchema,
-  seo: sectionSchema,
-  architecture: sectionSchema,
-  network: sectionSchema,
+  traffic: sectionSchema,
 });
 export type SectionSet = z.infer<typeof sectionSetSchema>;
 
+// --- evidence quality gate -------------------------------------------------------------
+
+export const evidenceQualitySchema = z.enum(['high', 'medium', 'low', 'failed']);
+export type EvidenceQuality = z.infer<typeof evidenceQualitySchema>;
+
+export const sectionQualitySchema = z.object({
+  section: sectionKeySchema,
+  quality: evidenceQualitySchema,
+  score: z.number(),
+  analyzers_completed: z.number(),
+  analyzers_total: z.number(),
+  findings_verified: z.number(),
+  findings_inferred: z.number(),
+  findings_negative: z.number(),
+  ai_fallback_recommended: z.boolean(),
+  reason: z.string(),
+});
+export type SectionQuality = z.infer<typeof sectionQualitySchema>;
+
+export const scanQualitySchema = z.object({
+  overall: evidenceQualitySchema,
+  overall_score: z.number(),
+  sections: z.record(sectionKeySchema, sectionQualitySchema),
+  ai_fallback_available: z.boolean(),
+  ai_fallback_sections: z.array(sectionKeySchema).default([]),
+});
+export type ScanQuality = z.infer<typeof scanQualitySchema>;
+
+// --- analysis result -------------------------------------------------------------------
+
 export const analysisResultSchema = z.object({
-  schema_version: z.string(),
+  schema_version: z.literal('2.0'),
   scan: scanMetadataSchema,
   target: targetInfoSchema,
   sections: sectionSetSchema,
+  quality: scanQualitySchema.nullish(),
   errors: z.array(scanErrorSchema).default([]),
   screenshots: z.array(screenshotRefSchema).default([]),
   limitations: z.array(z.string()).default([]),
@@ -394,6 +447,9 @@ export const capabilitiesSchema = z.object({
       optional: z.boolean(),
     }),
   ),
+  research_available: z.boolean(),
+  inference_available: z.boolean(),
+  traffic_provider_available: z.boolean(),
   limits: z.record(z.string(), z.union([z.number(), z.boolean()])),
 });
 export type Capabilities = z.infer<typeof capabilitiesSchema>;
@@ -413,42 +469,75 @@ export const healthSchema = z.object({
 });
 export type Health = z.infer<typeof healthSchema>;
 
-// --- SEO payload (the one section implemented in this build) ------------------------------
+// --- AI intelligence fallback -----------------------------------------------------------
 
-export const seoPayloadSchema = z.object({
-  metadata: z
-    .object({
-      title: z.string().nullish(),
-      title_length: z.number().nullish(),
-      description: z.string().nullish(),
-      description_length: z.number().nullish(),
-      canonical: z.string().nullish(),
-      robots_meta: z.string().nullish(),
-      viewport_meta: z.string().nullish(),
-      charset: z.string().nullish(),
-      lang: z.string().nullish(),
-      h1_texts: z.array(z.string()).default([]),
-      open_graph: z
-        .array(z.object({ key: z.string(), value: z.string().nullish() }))
-        .default([]),
-      twitter: z.array(z.object({ key: z.string(), value: z.string().nullish() })).default([]),
-      hreflang: z
-        .array(z.object({ hreflang: z.string(), href: z.string().nullish() }))
-        .default([]),
-      favicons: z.array(z.string()).default([]),
-    })
-    .nullish(),
-  indexability: z.unknown().nullish(),
-  structured_data: z
-    .array(
-      z.object({
-        format: z.string(),
-        types: z.array(z.string()).default([]),
-        valid: z.boolean(),
-        parse_error: z.string().nullish(),
-        raw_length: z.number().nullish(),
-      }),
-    )
-    .default([]),
-});
-export type SeoPayload = z.infer<typeof seoPayloadSchema>;
+export interface IntelligenceStatus {
+  available: boolean;
+  research_available: boolean;
+  inference_available: boolean;
+  reason: string | null;
+}
+
+export interface IntelligenceResponse {
+  scan_id: string;
+  mode: string;
+  sections_enhanced: SectionKey[];
+  research_performed: boolean;
+  research_available: boolean;
+  findings_added: number;
+  quality_before: ScanQuality | null;
+  quality_after: ScanQuality | null;
+  limitations: string[];
+}
+
+// --- Verdict engine types ---------------------------------------------------------------
+
+export const VERDICT_CATEGORIES = [
+  'verified',
+  'strongly_supported',
+  'likely',
+  'possible',
+  'not_detected',
+  'not_publicly_determinable',
+  'unable_to_verify',
+] as const;
+
+export type VerdictCategory = (typeof VERDICT_CATEGORIES)[number];
+
+/**
+ * Maps verdict category to a human-readable label for reports.
+ */
+export function verdictLabel(category: VerdictCategory): string {
+  const labels: Record<VerdictCategory, string> = {
+    verified: 'Verified',
+    strongly_supported: 'Strongly Supported',
+    likely: 'Likely',
+    possible: 'Possible',
+    not_detected: 'Not Detected',
+    not_publicly_determinable: 'Not Publicly Determinable',
+    unable_to_verify: 'Unable to Verify',
+  };
+  return labels[category];
+}
+
+/**
+ * Maps a FindingStatus to the closest verdict category for display purposes.
+ */
+export function findingStatusToVerdict(status: FindingStatus): VerdictCategory {
+  switch (status) {
+    case 'verified':
+      return 'verified';
+    case 'strongly_inferred':
+      return 'strongly_supported';
+    case 'inferred':
+      return 'likely';
+    case 'ai_inferred':
+      return 'likely';
+    case 'not_detected':
+      return 'not_detected';
+    case 'not_determinable':
+      return 'not_publicly_determinable';
+    case 'unable_to_verify':
+      return 'unable_to_verify';
+  }
+}

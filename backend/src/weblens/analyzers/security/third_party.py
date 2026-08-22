@@ -86,8 +86,7 @@ class SecurityThirdPartyAnalyzer:
                                 kind=EvidenceKind.SCRIPT_URL,
                                 source="dom.scripts[cross-origin, no integrity]",
                                 excerpt=(
-                                    f"{scripts_without_sri}/{total_co} "
-                                    "without integrity attribute"
+                                    f"{scripts_without_sri}/{total_co} without integrity attribute"
                                 ),
                             )
                         ],

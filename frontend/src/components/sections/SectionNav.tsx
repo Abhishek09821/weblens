@@ -80,6 +80,8 @@ function sectionStatusShort(status: SectionSet[SectionKey]['meta']['status']): s
       return 'n/a';
     case 'unavailable':
       return '!';
+    case 'insufficient_evidence':
+      return '⚠';
     case 'skipped':
       return '–';
     default:

@@ -13,7 +13,7 @@ from weblens.analyzers.base import (
 )
 from weblens.domain.enums import Confidence, EvidenceKind, EvidenceSlot, SectionKey
 from weblens.domain.evidence import EvidenceRef
-from weblens.domain.sections import AccessibilityPayload
+from weblens.domain.sections import DesignPayload
 
 ANALYZER_ID = "accessibility.axe"
 
@@ -27,7 +27,7 @@ class AccessibilityAxeAnalyzer:
     """Reports axe-core accessibility violations."""
 
     id = ANALYZER_ID
-    section = SectionKey.ACCESSIBILITY
+    section = SectionKey.DESIGN
     version = "1.0.0"
     requires = frozenset({EvidenceSlot.ACCESSIBILITY})
     depends_on: frozenset[str] = frozenset()
@@ -79,8 +79,7 @@ class AccessibilityAxeAnalyzer:
                         kind=EvidenceKind.AXE_RESULT,
                         source="accessibility.violations",
                         excerpt=(
-                            f"{total_violations} rules violated, "
-                            f"{total_nodes} total nodes affected"
+                            f"{total_violations} rules violated, {total_nodes} total nodes affected"
                         ),
                     )
                 ],
@@ -158,6 +157,6 @@ class AccessibilityAxeAnalyzer:
 
         return AnalyzerOutput(
             findings=findings,
-            data=AccessibilityPayload(axe=axe),
+            data=DesignPayload(axe=axe),
             limitations=limitations,
         )

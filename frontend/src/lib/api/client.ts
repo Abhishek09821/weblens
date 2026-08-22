@@ -14,6 +14,8 @@ import {
   type AnalysisResult,
   type Capabilities,
   type Health,
+  type IntelligenceResponse,
+  type IntelligenceStatus,
   type ScanAccepted,
   type ScanJobState,
   type SectionKey,
@@ -137,5 +139,31 @@ export const api = {
     } catch {
       return { available: false, summary: null, model: null, disclaimer: '' };
     }
+  },
+
+  /** Check if AI intelligence fallback is available for a scan. */
+  async intelligenceStatus(scanId: string): Promise<IntelligenceStatus> {
+    const response = await fetch(`${API_V1}/scans/${scanId}/intelligence/status`);
+    if (!response.ok) {
+      return { available: false, research_available: false, inference_available: false, reason: 'Failed to check status.' };
+    }
+    return response.json();
+  },
+
+  /** Run AI intelligence fallback on an existing scan. */
+  async runIntelligence(
+    scanId: string,
+    options?: { sections?: SectionKey[]; additional_context?: string },
+  ): Promise<IntelligenceResponse> {
+    const response = await fetch(`${API_V1}/scans/${scanId}/intelligence`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(options ?? {}),
+    });
+    if (!response.ok) {
+      const body = await response.json().catch(() => ({}));
+      throw new ApiProblemError(body);
+    }
+    return response.json();
   },
 };

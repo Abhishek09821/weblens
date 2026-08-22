@@ -15,7 +15,6 @@ import { buildReportBundle } from '@/features/reports/generate';
 import { generateCompletePdf, generateSectionPdf } from '@/features/reports/pdf';
 import { REPORT_DEFINITIONS } from '@/features/reports/markdown/renderers';
 import { renderAnalysisJson } from '@/features/reports/json';
-import { sectionLabel } from '@/lib/format/labels';
 import { slugifyHost, timestampSlug } from '@/lib/format/values';
 import { useStoredScreenshots } from '@/features/history/useScanLibrary';
 import type { AnalysisResult, SectionKey } from '@/types/analysis';
@@ -87,14 +86,15 @@ export function ExportMenu({ result }: { result: AnalysisResult }) {
 
         <DropdownMenuSeparator />
         <DropdownMenuLabel>Individual PDF reports</DropdownMenuLabel>
-        {(['seo', 'security', 'technology', 'design', 'performance', 'accessibility', 'architecture', 'network'] as const).map(
-          (key) => (
-            <DropdownMenuItem key={`pdf-${key}`} onSelect={() => downloadSectionPdf(key)}>
-              <FileIcon className="size-4" />
-              {sectionLabel(key).toLowerCase()}.pdf
-            </DropdownMenuItem>
-          ),
-        )}
+        {REPORT_DEFINITIONS.map((definition) => (
+          <DropdownMenuItem
+            key={`pdf-${definition.section}`}
+            onSelect={() => downloadSectionPdf(definition.section)}
+          >
+            <FileIcon className="size-4" />
+            {definition.file.replace(/\.md$/, '.pdf')}
+          </DropdownMenuItem>
+        ))}
 
         <DropdownMenuSeparator />
         <DropdownMenuLabel>Individual Markdown reports</DropdownMenuLabel>

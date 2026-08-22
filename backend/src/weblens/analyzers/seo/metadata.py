@@ -38,7 +38,7 @@ from weblens.domain.sections import (
     HreflangEntry,
     KeyValueObservation,
     MetadataObservation,
-    SeoPayload,
+    TechnologyPayload,
 )
 from weblens.utils.text import text_length
 
@@ -322,7 +322,7 @@ class SeoMetadataAnalyzer:
     """Reads document metadata from the DOM inventory."""
 
     id = ANALYZER_ID
-    section = SectionKey.SEO
+    section = SectionKey.TECHNOLOGY
     version = "1.0.0"
     requires = frozenset({EvidenceSlot.DOM})
     depends_on: frozenset[str] = frozenset()
@@ -344,7 +344,7 @@ class SeoMetadataAnalyzer:
 
         return AnalyzerOutput(
             findings=findings,
-            data=SeoPayload(
+            data=TechnologyPayload(
                 metadata=self._payload(dom),
                 structured_data=list(dom.structured_data),
             ),

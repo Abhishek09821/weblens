@@ -90,10 +90,24 @@ async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
     override: Collector | None = getattr(app.state, "collector_override", None)
     collector: Collector = override or BrowserEvidenceCollector(settings, guard)
 
+    # V2 providers: research, inference, traffic (all optional, default to null/noop)
+    from weblens.ai.inference import get_inference_provider
+    from weblens.research.base import get_provider as get_search_provider
+
+    search_provider = get_search_provider(settings.search_provider)
+    inference_provider = get_inference_provider(settings.inference_provider)
+
     app.state.target_guard = guard
     app.state.job_store = store
     app.state.collector = collector
-    app.state.scan_service = ScanService(settings, store, guard, collector)
+    app.state.scan_service = ScanService(
+        settings,
+        store,
+        guard,
+        collector,
+        search_provider=search_provider,
+        inference_provider=inference_provider,
+    )
 
     sweeper = asyncio.create_task(periodic_sweep(store), name="weblens-job-sweeper")
     implemented = sum(1 for entry in registry.all_entries() if entry.implemented)

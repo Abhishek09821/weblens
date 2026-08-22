@@ -5,9 +5,16 @@ capabilities endpoint reads it, the pipeline schedules from it, and the frontend
 section states from it - so an unbuilt analyzer surfaces as an honest "not implemented in this
 build" everywhere at once, with no place left to accidentally show an empty panel instead.
 
-Entries without a ``factory`` are declared but not implemented. They are listed on purpose:
-the phased plan is public, and a user reading a report should be able to see what was not
-examined.
+V2 consolidation: the eight original sections collapsed into four user-facing reports
+(Design, Technology, Security, Traffic). Existing analyzers retain their detection logic
+unchanged — only their section assignment moved:
+
+  architecture.* → Technology (rendering, platform, runtime are infrastructure signals)
+  network.*      → Technology (third-party services, resource composition)
+  performance.*  → Technology (build tool, optimization, CDN signals)
+  seo.*          → Technology (structured data, metadata tech signals)
+  accessibility.structure → Design (DOM hierarchy feeds recreation)
+  accessibility.axe       → Design (structural quality for design understanding)
 """
 
 from __future__ import annotations
@@ -51,6 +58,7 @@ from weblens.analyzers.technology import (
     TechStackAnalyzer,
     TechStylingAnalyzer,
 )
+from weblens.analyzers.traffic import TrafficPopularityAnalyzer, TrafficSignalsAnalyzer
 from weblens.domain.enums import EvidenceSlot, SectionKey
 
 Slots = frozenset[EvidenceSlot]
@@ -78,7 +86,8 @@ def _slots(*slots: EvidenceSlot) -> Slots:
 
 # fmt: off
 REGISTRY: tuple[AnalyzerEntry, ...] = (
-    # --- technology ---------------------------------------------------------------------
+    # ═══ TECHNOLOGY ═══════════════════════════════════════════════════════════════════════
+    # Core tech detection
     AnalyzerEntry(
         "technology.stack", SectionKey.TECHNOLOGY, "1.0.0",
         "Products detected from headers, script URLs, runtime globals and network requests.",
@@ -103,7 +112,71 @@ REGISTRY: tuple[AnalyzerEntry, ...] = (
         _slots(EvidenceSlot.DOM, EvidenceSlot.STYLES), 3,
         factory=TechStylingAnalyzer,
     ),
-    # --- design -------------------------------------------------------------------------
+    # Architecture → Technology
+    AnalyzerEntry(
+        "architecture.rendering", SectionKey.TECHNOLOGY, "1.0.0",
+        "Rendering strategy signals from the served-versus-rendered delta and hydration payloads.",
+        _slots(EvidenceSlot.HTTP, EvidenceSlot.DOM, EvidenceSlot.RUNTIME), 3,
+        factory=ArchitectureRenderingAnalyzer,
+    ),
+    AnalyzerEntry(
+        "architecture.platform", SectionKey.TECHNOLOGY, "1.0.0",
+        "Hosting, CDN and edge indicators from response headers and DNS observations.",
+        _slots(EvidenceSlot.HTTP, EvidenceSlot.DNS), 3,
+        factory=ArchitecturePlatformAnalyzer,
+    ),
+    AnalyzerEntry(
+        "architecture.runtime", SectionKey.TECHNOLOGY, "1.0.0",
+        "HTTP protocol, service worker, module usage, storage APIs and console output.",
+        _slots(EvidenceSlot.RUNTIME, EvidenceSlot.NETWORK), 3,
+        factory=ArchitectureRuntimeAnalyzer,
+    ),
+    # Network → Technology
+    AnalyzerEntry(
+        "network.resources", SectionKey.TECHNOLOGY, "1.0.0",
+        "Request ledger summary: per-domain counts and bytes, protocol and MIME mix.",
+        _slots(EvidenceSlot.NETWORK), 3,
+        factory=NetworkResourcesAnalyzer,
+    ),
+    AnalyzerEntry(
+        "network.third_parties", SectionKey.TECHNOLOGY, "1.0.0",
+        "Third-party domains by category and the first-party/third-party byte split.",
+        _slots(EvidenceSlot.NETWORK), 3,
+        factory=NetworkThirdPartiesAnalyzer,
+    ),
+    # Performance → Technology (build/optimization signals)
+    AnalyzerEntry(
+        "performance.timings", SectionKey.TECHNOLOGY, "1.0.0",
+        "Navigation and paint timing, LCP, CLS and long tasks from one lab run.",
+        _slots(EvidenceSlot.PERFORMANCE), 5,
+        factory=PerformanceTimingsAnalyzer,
+    ),
+    AnalyzerEntry(
+        "performance.resources", SectionKey.TECHNOLOGY, "1.0.0",
+        "Bytes and request counts by type and domain, compression and cache coverage.",
+        _slots(EvidenceSlot.NETWORK), 5,
+        factory=PerformanceResourcesAnalyzer,
+    ),
+    # SEO → Technology (structured data, metadata tech signals)
+    AnalyzerEntry(
+        "seo.metadata", SectionKey.TECHNOLOGY, "1.0.0",
+        "Document metadata observed in the served HTML.",
+        _slots(EvidenceSlot.DOM), 0,
+        factory=SeoMetadataAnalyzer,
+    ),
+    AnalyzerEntry(
+        "seo.indexability", SectionKey.TECHNOLOGY, "1.0.0",
+        "robots.txt directives, X-Robots-Tag, canonical self-reference and redirect shape.",
+        _slots(EvidenceSlot.HTTP, EvidenceSlot.ROBOTS), 3,
+        factory=SeoIndexabilityAnalyzer,
+    ),
+    AnalyzerEntry(
+        "seo.structured_data", SectionKey.TECHNOLOGY, "1.0.0",
+        "JSON-LD, microdata and RDFa inventory with syntax validity.",
+        _slots(EvidenceSlot.DOM), 3,
+        factory=SeoStructuredDataAnalyzer,
+    ),
+    # ═══ DESIGN ══════════════════════════════════════════════════════════════════════════
     AnalyzerEntry(
         "design.color", SectionKey.DESIGN, "1.0.0",
         "Background, text and accent colours observed in computed styles.",
@@ -142,7 +215,20 @@ REGISTRY: tuple[AnalyzerEntry, ...] = (
             {"design.color", "design.typography", "design.layout", "design.media", "design.motion"}
         ),
     ),
-    # --- security -----------------------------------------------------------------------
+    # Accessibility → Design (DOM structure aids recreation)
+    AnalyzerEntry(
+        "accessibility.axe", SectionKey.DESIGN, "1.0.0",
+        "axe-core rule violations grouped by impact (structural quality for recreation).",
+        _slots(EvidenceSlot.ACCESSIBILITY), 5,
+        factory=AccessibilityAxeAnalyzer,
+    ),
+    AnalyzerEntry(
+        "accessibility.structure", SectionKey.DESIGN, "1.0.0",
+        "Language, landmarks, heading order, alt coverage and form labelling.",
+        _slots(EvidenceSlot.DOM), 5,
+        factory=AccessibilityStructureAnalyzer,
+    ),
+    # ═══ SECURITY ════════════════════════════════════════════════════════════════════════
     AnalyzerEntry(
         "security.headers", SectionKey.SECURITY, "1.0.0",
         "Security response headers, including parsed Content-Security-Policy directives.",
@@ -195,82 +281,18 @@ REGISTRY: tuple[AnalyzerEntry, ...] = (
             }
         ),
     ),
-    # --- performance --------------------------------------------------------------------
+    # ═══ TRAFFIC ═════════════════════════════════════════════════════════════════════════
     AnalyzerEntry(
-        "performance.timings", SectionKey.PERFORMANCE, "1.0.0",
-        "Navigation and paint timing, LCP, CLS and long tasks from one lab run.",
-        _slots(EvidenceSlot.PERFORMANCE), 5,
-        factory=PerformanceTimingsAnalyzer,
+        "traffic.popularity", SectionKey.TRAFFIC, "1.0.0",
+        "Domain popularity rank and traffic band from public data sources.",
+        _slots(), 6,
+        factory=TrafficPopularityAnalyzer,
     ),
     AnalyzerEntry(
-        "performance.resources", SectionKey.PERFORMANCE, "1.0.0",
-        "Bytes and request counts by type and domain, compression and cache coverage.",
-        _slots(EvidenceSlot.NETWORK), 5,
-        factory=PerformanceResourcesAnalyzer,
-    ),
-    # --- accessibility ------------------------------------------------------------------
-    AnalyzerEntry(
-        "accessibility.axe", SectionKey.ACCESSIBILITY, "1.0.0",
-        "axe-core rule violations grouped by impact.",
-        _slots(EvidenceSlot.ACCESSIBILITY), 5,
-        factory=AccessibilityAxeAnalyzer,
-    ),
-    AnalyzerEntry(
-        "accessibility.structure", SectionKey.ACCESSIBILITY, "1.0.0",
-        "Language, landmarks, heading order, alt coverage and form labelling.",
-        _slots(EvidenceSlot.DOM), 5,
-        factory=AccessibilityStructureAnalyzer,
-    ),
-    # --- seo ----------------------------------------------------------------------------
-    AnalyzerEntry(
-        "seo.metadata", SectionKey.SEO, "1.0.0",
-        "Document metadata observed in the served HTML.",
-        _slots(EvidenceSlot.DOM), 0,
-        factory=SeoMetadataAnalyzer,
-    ),
-    AnalyzerEntry(
-        "seo.indexability", SectionKey.SEO, "1.0.0",
-        "robots.txt directives, X-Robots-Tag, canonical self-reference and redirect shape.",
-        _slots(EvidenceSlot.HTTP, EvidenceSlot.ROBOTS), 3,
-        factory=SeoIndexabilityAnalyzer,
-    ),
-    AnalyzerEntry(
-        "seo.structured_data", SectionKey.SEO, "1.0.0",
-        "JSON-LD, microdata and RDFa inventory with syntax validity.",
-        _slots(EvidenceSlot.DOM), 3,
-        factory=SeoStructuredDataAnalyzer,
-    ),
-    # --- network ------------------------------------------------------------------------
-    AnalyzerEntry(
-        "network.resources", SectionKey.NETWORK, "1.0.0",
-        "Request ledger summary: per-domain counts and bytes, protocol and MIME mix.",
-        _slots(EvidenceSlot.NETWORK), 3,
-        factory=NetworkResourcesAnalyzer,
-    ),
-    AnalyzerEntry(
-        "network.third_parties", SectionKey.NETWORK, "1.0.0",
-        "Third-party domains by category and the first-party/third-party byte split.",
-        _slots(EvidenceSlot.NETWORK), 3,
-        factory=NetworkThirdPartiesAnalyzer,
-    ),
-    # --- architecture -------------------------------------------------------------------
-    AnalyzerEntry(
-        "architecture.rendering", SectionKey.ARCHITECTURE, "1.0.0",
-        "Rendering strategy signals from the served-versus-rendered delta and hydration payloads.",
-        _slots(EvidenceSlot.HTTP, EvidenceSlot.DOM, EvidenceSlot.RUNTIME), 3,
-        factory=ArchitectureRenderingAnalyzer,
-    ),
-    AnalyzerEntry(
-        "architecture.platform", SectionKey.ARCHITECTURE, "1.0.0",
-        "Hosting, CDN and edge indicators from response headers and DNS observations.",
-        _slots(EvidenceSlot.HTTP, EvidenceSlot.DNS), 3,
-        factory=ArchitecturePlatformAnalyzer,
-    ),
-    AnalyzerEntry(
-        "architecture.runtime", SectionKey.ARCHITECTURE, "1.0.0",
-        "HTTP protocol, service worker, module usage, storage APIs and console output.",
-        _slots(EvidenceSlot.RUNTIME, EvidenceSlot.NETWORK), 3,
-        factory=ArchitectureRuntimeAnalyzer,
+        "traffic.signals", SectionKey.TRAFFIC, "1.0.0",
+        "Analytics and tracking services detected from network requests.",
+        _slots(EvidenceSlot.NETWORK), 6,
+        factory=TrafficSignalsAnalyzer,
     ),
 )
 # fmt: on

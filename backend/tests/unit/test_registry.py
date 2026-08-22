@@ -20,9 +20,10 @@ def test_every_section_has_at_least_one_declared_analyzer() -> None:
         assert registry.entries_for_section(section), f"{section.value} has no analyzers declared"
 
 
-def test_analyzer_ids_are_section_prefixed() -> None:
+def test_analyzer_ids_are_namespaced() -> None:
+    """Every analyzer ID must be dot-separated (category.name format)."""
     for entry in registry.all_entries():
-        assert entry.id.startswith(f"{entry.section.value}."), entry.id
+        assert "." in entry.id, f"{entry.id} is not namespaced"
 
 
 def test_ids_are_unique() -> None:

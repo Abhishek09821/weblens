@@ -97,9 +97,7 @@ class SummarizeResponse(BaseModel):
     response_model=SummarizeResponse,
     summary="Generate a human-readable AI summary of the analysis",
 )
-async def summarize(
-    request: SummarizeRequest, service: ScanServiceDep
-) -> SummarizeResponse:
+async def summarize(request: SummarizeRequest, service: ScanServiceDep) -> SummarizeResponse:
     from weblens.ai.summarize import (
         GROQ_MODEL,
         build_summary_input,
@@ -112,7 +110,7 @@ async def summarize(
 
     # Accept either a scan_id (if still on server) or direct result_data from client
     if request.result_data:
-        summary_input = build_summary_input(request.result_data)  # type: ignore[arg-type]
+        summary_input = build_summary_input(request.result_data)
     elif request.scan_id:
         try:
             result = await service.result(request.scan_id)

@@ -15,7 +15,7 @@ from weblens.analyzers.base import (
 )
 from weblens.domain.enums import Confidence, EvidenceKind, EvidenceSlot, SectionKey
 from weblens.domain.evidence import EvidenceRef
-from weblens.domain.sections import IndexabilityObservation, SeoPayload
+from weblens.domain.sections import IndexabilityObservation, TechnologyPayload
 
 ANALYZER_ID = "seo.indexability"
 
@@ -24,7 +24,7 @@ class SeoIndexabilityAnalyzer:
     """Checks indexability signals."""
 
     id = ANALYZER_ID
-    section = SectionKey.SEO
+    section = SectionKey.TECHNOLOGY
     version = "1.0.0"
     requires = frozenset({EvidenceSlot.HTTP, EvidenceSlot.ROBOTS})
     depends_on: frozenset[str] = frozenset()
@@ -180,5 +180,5 @@ class SeoIndexabilityAnalyzer:
 
         return AnalyzerOutput(
             findings=findings,
-            data=SeoPayload(indexability=indexability_obs),
+            data=TechnologyPayload(indexability=indexability_obs),
         )

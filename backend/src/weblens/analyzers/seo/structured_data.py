@@ -12,7 +12,7 @@ from weblens.analyzers.base import (
 )
 from weblens.domain.enums import Confidence, EvidenceKind, EvidenceSlot, SectionKey
 from weblens.domain.evidence import EvidenceRef
-from weblens.domain.sections import SeoPayload
+from weblens.domain.sections import TechnologyPayload
 
 ANALYZER_ID = "seo.structured_data"
 
@@ -21,7 +21,7 @@ class SeoStructuredDataAnalyzer:
     """Analyzes structured data from the DOM."""
 
     id = ANALYZER_ID
-    section = SectionKey.SEO
+    section = SectionKey.TECHNOLOGY
     version = "1.0.0"
     requires = frozenset({EvidenceSlot.DOM})
     depends_on: frozenset[str] = frozenset()
@@ -111,5 +111,5 @@ class SeoStructuredDataAnalyzer:
 
         return AnalyzerOutput(
             findings=findings,
-            data=SeoPayload(structured_data=list(structured_data)),
+            data=TechnologyPayload(structured_data=list(structured_data)),
         )

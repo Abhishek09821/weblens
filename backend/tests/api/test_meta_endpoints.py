@@ -8,6 +8,8 @@ from pathlib import Path
 import httpx
 
 from tests.conftest import FakeCollector
+from weblens.api.routes.capabilities import capabilities
+from weblens.config import Settings
 from weblens.orchestration import registry
 from weblens.version import ENGINE_VERSION, SCHEMA_VERSION
 
@@ -46,11 +48,11 @@ async def test_capabilities_lists_every_declared_analyzer(
     client, _ = api_client
     body = (await client.get("/api/v1/capabilities")).json()
 
-    assert len(body["sections"]) == 8
+    assert len(body["sections"]) == 4
     assert len(body["analyzers"]) == len(registry.all_entries())
 
     implemented = [entry["id"] for entry in body["analyzers"] if entry["implemented"]]
-    assert len(implemented) >= 25
+    assert len(implemented) >= 28
     assert "seo.metadata" in implemented
 
     unimplemented = [entry for entry in body["analyzers"] if not entry["implemented"]]
@@ -77,6 +79,20 @@ async def test_capabilities_exposes_limits(
     assert limits["respect_robots"] is True
     assert limits["total_scan_budget_ms"] > 0
     assert limits["result_ttl_seconds"] > 0
+
+
+async def test_capabilities_do_not_advertise_null_provider_fallbacks() -> None:
+    response = await capabilities(
+        Settings(
+            search_provider="not-a-provider",
+            inference_provider="not-a-provider",
+            traffic_provider="not-a-provider",
+        )
+    )
+
+    assert response.research_available is False
+    assert response.inference_available is False
+    assert response.traffic_provider_available is False
 
 
 async def test_committed_contract_matches_the_app(

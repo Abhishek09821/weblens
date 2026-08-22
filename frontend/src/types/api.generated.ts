@@ -21,6 +21,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/ai/summarize": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Generate a human-readable AI summary of the analysis */
+        post: operations["summarize_api_v1_ai_summarize_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/capabilities": {
         parameters: {
             query?: never;
@@ -140,18 +157,6 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        /**
-         * AccessibilityPayload
-         * @description Phase 5. No score, by design: violation counts are not a conformance measure.
-         */
-        AccessibilityPayload: {
-            axe?: components["schemas"]["AxeObservation"] | null;
-            /**
-             * Coverage Note
-             * @default Automated rules detect a subset of WCAG issues. A clean result does not mean a site is accessible; conformance requires manual testing and expert review.
-             */
-            coverage_note: string;
-        };
         /** AnalysisResult */
         AnalysisResult: {
             /** Errors */
@@ -161,7 +166,7 @@ export interface components {
             scan: components["schemas"]["ScanMetadata"];
             /**
              * Schema Version
-             * @default 1.0
+             * @default 2.0
              */
             schema_version: string;
             /** Screenshots */
@@ -220,14 +225,6 @@ export interface components {
             reason: string;
             /** Rule Id */
             rule_id: string;
-        };
-        /**
-         * ArchitecturePayload
-         * @description Phase 3. Rendering strategy signals, platform indicators, runtime observations.
-         */
-        ArchitecturePayload: {
-            /** Static Vs Rendered Element Delta */
-            static_vs_rendered_element_delta?: number | null;
         };
         /** AxeNode */
         AxeNode: {
@@ -304,13 +301,19 @@ export interface components {
             collection_mode: string;
             /** Engine Version */
             engine_version: string;
+            /** Inference Available */
+            inference_available: boolean;
             limits: components["schemas"]["ScanLimits"];
+            /** Research Available */
+            research_available: boolean;
             /** Schema Version */
             schema_version: string;
             /** Sections */
             sections: components["schemas"]["SectionKey"][];
             /** Stages */
             stages: components["schemas"]["StageCapability"][];
+            /** Traffic Provider Available */
+            traffic_provider_available: boolean;
         };
         /**
          * Confidence
@@ -324,12 +327,10 @@ export interface components {
         Confidence: "definitive" | "strong" | "moderate" | "weak";
         /**
          * DesignPayload
-         * @description Phase 4. Palette, typography, spacing/radius/shadow scales, layout, media, motion.
-         *
-         *     ``coverage`` is declared now because every design claim must be reported alongside the
-         *     sample it came from.
+         * @description Recreation-oriented design data. coverage reports sample quality.
          */
         DesignPayload: {
+            axe?: components["schemas"]["AxeObservation"] | null;
             coverage?: components["schemas"]["SampleCoverage"] | null;
         };
         /**
@@ -384,7 +385,7 @@ export interface components {
          * @description What kind of observation an :class:`~weblens.domain.evidence.EvidenceRef` points at.
          * @enum {string}
          */
-        EvidenceKind: "http_header" | "http_status" | "redirect_hop" | "html_element" | "html_attribute" | "meta_tag" | "inline_script" | "script_url" | "stylesheet_url" | "runtime_global" | "computed_style" | "loaded_font" | "cookie" | "tls_connection" | "dns_record" | "robots_directive" | "network_request" | "performance_entry" | "axe_result" | "console_message" | "dom_measurement";
+        EvidenceKind: "http_header" | "http_status" | "redirect_hop" | "html_element" | "html_attribute" | "meta_tag" | "inline_script" | "script_url" | "stylesheet_url" | "runtime_global" | "computed_style" | "loaded_font" | "cookie" | "tls_connection" | "dns_record" | "robots_directive" | "network_request" | "performance_entry" | "axe_result" | "console_message" | "dom_measurement" | "research_source" | "ai_reasoning";
         /**
          * EvidenceRef
          * @description A pointer to the observation that supports a finding, with a quotable excerpt.
@@ -514,11 +515,11 @@ export interface components {
          * FindingStatus
          * @description User-facing certainty of a finding.
          *
-         *     The three negative states are deliberately distinct: they answer different questions
+         *     The negative states are deliberately distinct: they answer different questions
          *     and conflating them is how a tool starts making things up.
          * @enum {string}
          */
-        FindingStatus: "verified" | "inferred" | "not_detected" | "not_determinable" | "unable_to_verify";
+        FindingStatus: "verified" | "strongly_inferred" | "inferred" | "ai_inferred" | "not_detected" | "not_determinable" | "unable_to_verify";
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -567,10 +568,7 @@ export interface components {
             /** Hreflang */
             hreflang: string;
         };
-        /**
-         * IndexabilityObservation
-         * @description Phase 3.
-         */
+        /** IndexabilityObservation */
         IndexabilityObservation: {
             /** Canonical Is Self Referential */
             canonical_is_self_referential?: boolean | null;
@@ -669,21 +667,6 @@ export interface components {
             text: string;
         };
         /**
-         * NetworkPayload
-         * @description Phase 3.
-         */
-        NetworkPayload: {
-            /** By Domain */
-            by_domain?: components["schemas"]["DomainSummary"][];
-            /**
-             * Cap Hit
-             * @default false
-             */
-            cap_hit: boolean;
-            /** Requests */
-            requests?: components["schemas"]["NetworkRequestRecord"][];
-        };
-        /**
          * NetworkRequestRecord
          * @description One request/response pair observed during navigation.
          *
@@ -767,13 +750,6 @@ export interface components {
             transfer_bytes_total?: number | null;
             /** Ttfb Ms */
             ttfb_ms?: number | null;
-        };
-        /**
-         * PerformancePayload
-         * @description Phase 5. Run context lives on scan metadata and applies to every metric here.
-         */
-        PerformancePayload: {
-            timings?: components["schemas"]["PerformanceObservation"] | null;
         };
         /**
          * PostureBand
@@ -1027,7 +1003,7 @@ export interface components {
             scan_id: string;
             /**
              * Schema Version
-             * @default 1.0
+             * @default 2.0
              */
             schema_version: string;
             /** Stages */
@@ -1099,10 +1075,14 @@ export interface components {
         };
         /**
          * SectionKey
-         * @description The eight report sections. Order here is the canonical presentation order.
+         * @description The four user-facing report sections. Order here is the canonical presentation order.
+         *
+         *     V2 consolidated eight sections into four. Architecture, network, performance, SEO, and
+         *     accessibility evidence still feeds the remaining sections internally but is no longer
+         *     exposed as standalone user-facing reports.
          * @enum {string}
          */
-        SectionKey: "design" | "technology" | "security" | "performance" | "accessibility" | "seo" | "architecture" | "network";
+        SectionKey: "design" | "technology" | "security" | "traffic";
         /** SectionMeta */
         SectionMeta: {
             /** Analyzers */
@@ -1116,62 +1096,22 @@ export interface components {
         };
         /**
          * SectionSet
-         * @description All eight sections, as explicit fields so both sides of the wire stay typed.
+         * @description The four V2 report sections.
          */
         SectionSet: {
-            accessibility: components["schemas"]["Section_AccessibilityPayload_"];
-            architecture: components["schemas"]["Section_ArchitecturePayload_"];
             design: components["schemas"]["Section_DesignPayload_"];
-            network: components["schemas"]["Section_NetworkPayload_"];
-            performance: components["schemas"]["Section_PerformancePayload_"];
             security: components["schemas"]["Section_SecurityPayload_"];
-            seo: components["schemas"]["Section_SeoPayload_"];
             technology: components["schemas"]["Section_TechnologyPayload_"];
+            traffic: components["schemas"]["Section_TrafficPayload_"];
         };
         /**
          * SectionStatus
          * @enum {string}
          */
         SectionStatus: "complete" | "partial" | "unavailable" | "not_implemented" | "skipped";
-        /** Section[AccessibilityPayload] */
-        Section_AccessibilityPayload_: {
-            data?: components["schemas"]["AccessibilityPayload"] | null;
-            /** Findings */
-            findings?: components["schemas"]["Finding"][];
-            /** Interpretations */
-            interpretations?: components["schemas"]["Interpretation"][];
-            meta: components["schemas"]["SectionMeta"];
-        };
-        /** Section[ArchitecturePayload] */
-        Section_ArchitecturePayload_: {
-            data?: components["schemas"]["ArchitecturePayload"] | null;
-            /** Findings */
-            findings?: components["schemas"]["Finding"][];
-            /** Interpretations */
-            interpretations?: components["schemas"]["Interpretation"][];
-            meta: components["schemas"]["SectionMeta"];
-        };
         /** Section[DesignPayload] */
         Section_DesignPayload_: {
             data?: components["schemas"]["DesignPayload"] | null;
-            /** Findings */
-            findings?: components["schemas"]["Finding"][];
-            /** Interpretations */
-            interpretations?: components["schemas"]["Interpretation"][];
-            meta: components["schemas"]["SectionMeta"];
-        };
-        /** Section[NetworkPayload] */
-        Section_NetworkPayload_: {
-            data?: components["schemas"]["NetworkPayload"] | null;
-            /** Findings */
-            findings?: components["schemas"]["Finding"][];
-            /** Interpretations */
-            interpretations?: components["schemas"]["Interpretation"][];
-            meta: components["schemas"]["SectionMeta"];
-        };
-        /** Section[PerformancePayload] */
-        Section_PerformancePayload_: {
-            data?: components["schemas"]["PerformancePayload"] | null;
             /** Findings */
             findings?: components["schemas"]["Finding"][];
             /** Interpretations */
@@ -1187,18 +1127,18 @@ export interface components {
             interpretations?: components["schemas"]["Interpretation"][];
             meta: components["schemas"]["SectionMeta"];
         };
-        /** Section[SeoPayload] */
-        Section_SeoPayload_: {
-            data?: components["schemas"]["SeoPayload"] | null;
+        /** Section[TechnologyPayload] */
+        Section_TechnologyPayload_: {
+            data?: components["schemas"]["TechnologyPayload"] | null;
             /** Findings */
             findings?: components["schemas"]["Finding"][];
             /** Interpretations */
             interpretations?: components["schemas"]["Interpretation"][];
             meta: components["schemas"]["SectionMeta"];
         };
-        /** Section[TechnologyPayload] */
-        Section_TechnologyPayload_: {
-            data?: components["schemas"]["TechnologyPayload"] | null;
+        /** Section[TrafficPayload] */
+        Section_TrafficPayload_: {
+            data?: components["schemas"]["TrafficPayload"] | null;
             /** Findings */
             findings?: components["schemas"]["Finding"][];
             /** Interpretations */
@@ -1212,7 +1152,7 @@ export interface components {
         SecurityCategory: "transport" | "headers" | "cookies" | "content_integrity" | "exposure";
         /**
          * SecurityPayload
-         * @description Phase 2. ``score`` is the only score in the whole domain model (axiom A4).
+         * @description ``score`` is the only score in the whole domain model (axiom A4).
          */
         SecurityPayload: {
             /** Headers */
@@ -1288,13 +1228,6 @@ export interface components {
             /** Rules */
             rules?: components["schemas"]["SecurityRuleResult"][];
         };
-        /** SeoPayload */
-        SeoPayload: {
-            indexability?: components["schemas"]["IndexabilityObservation"] | null;
-            metadata?: components["schemas"]["MetadataObservation"] | null;
-            /** Structured Data */
-            structured_data?: components["schemas"]["StructuredDataBlock"][];
-        };
         /** StageCapability */
         StageCapability: {
             /** Implemented */
@@ -1313,7 +1246,7 @@ export interface components {
          * @description Collection and analysis stages, in execution order.
          * @enum {string}
          */
-        StageKey: "validate" | "dns" | "robots" | "http_probe" | "tls" | "browser_launch" | "navigate" | "dom_capture" | "runtime_capture" | "style_capture" | "perf_capture" | "network_capture" | "a11y_capture" | "responsive_probe" | "screenshot" | "analyze" | "assemble";
+        StageKey: "validate" | "dns" | "robots" | "http_probe" | "tls" | "browser_launch" | "navigate" | "dom_capture" | "runtime_capture" | "style_capture" | "perf_capture" | "network_capture" | "a11y_capture" | "responsive_probe" | "screenshot" | "analyze" | "research" | "inference" | "assemble";
         /**
          * StageProgress
          * @description Progress derived from stages that actually completed.
@@ -1381,6 +1314,29 @@ export interface components {
             /** Valid */
             valid: boolean;
         };
+        /** SummarizeRequest */
+        SummarizeRequest: {
+            /** Result Data */
+            result_data?: {
+                [key: string]: unknown;
+            } | null;
+            /** Scan Id */
+            scan_id?: string | null;
+        };
+        /** SummarizeResponse */
+        SummarizeResponse: {
+            /** Available */
+            available: boolean;
+            /**
+             * Disclaimer
+             * @default This summary is AI-generated from verified analysis findings. It does not introduce new detections or modify factual values.
+             */
+            disclaimer: string;
+            /** Model */
+            model?: string | null;
+            /** Summary */
+            summary?: string | null;
+        };
         /**
          * TargetInfo
          * @description What we ended up analyzing, which is not always what was requested.
@@ -1410,11 +1366,43 @@ export interface components {
         };
         /**
          * TechnologyPayload
-         * @description Phase 3.
+         * @description Consolidated technology + architecture + network + performance + SEO data.
          */
         TechnologyPayload: {
+            /** By Domain */
+            by_domain?: components["schemas"]["DomainSummary"][];
+            indexability?: components["schemas"]["IndexabilityObservation"] | null;
+            metadata?: components["schemas"]["MetadataObservation"] | null;
+            /**
+             * Network Cap Hit
+             * @default false
+             */
+            network_cap_hit: boolean;
             /** Products */
             products?: components["schemas"]["DetectedProduct"][];
+            /** Requests */
+            requests?: components["schemas"]["NetworkRequestRecord"][];
+            /** Static Vs Rendered Element Delta */
+            static_vs_rendered_element_delta?: number | null;
+            /** Structured Data */
+            structured_data?: components["schemas"]["StructuredDataBlock"][];
+            timings?: components["schemas"]["PerformanceObservation"] | null;
+        };
+        /**
+         * TrafficPayload
+         * @description Traffic and popularity intelligence from external public data sources.
+         */
+        TrafficPayload: {
+            /**
+             * Provider Available
+             * @default false
+             */
+            provider_available: boolean;
+            /**
+             * Provider Name
+             * @description Which traffic provider was used, or None if unavailable.
+             */
+            provider_name?: string | null;
         };
         /** ValidationError */
         ValidationError: {
@@ -1488,6 +1476,39 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    summarize_api_v1_ai_summarize_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SummarizeRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SummarizeResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
             };
         };
     };

@@ -12,6 +12,14 @@ import asyncio
 from dataclasses import dataclass
 from typing import Any
 
+from pydantic import BaseModel
+
+from weblens.ai.inference import (
+    InferenceProvider,
+    InferenceQuestion,
+    NullInferenceProvider,
+    claims_to_findings,
+)
 from weblens.analyzers.base import Analyzer, AnalyzerContext, AnalyzerOutput
 from weblens.collection.base import Collector
 from weblens.collection.target import NormalizedTarget
@@ -27,6 +35,7 @@ from weblens.domain.enums import (
 from weblens.domain.errors import ScanError
 from weblens.domain.evidence import RawEvidence
 from weblens.domain.findings import Finding, Interpretation
+from weblens.domain.quality import assess_quality
 from weblens.domain.scan import (
     AnalysisResult,
     RedirectHop,
@@ -37,24 +46,21 @@ from weblens.domain.scan import (
     TargetInfo,
 )
 from weblens.domain.sections import (
-    AccessibilityPayload,
     AnalyzerRun,
-    ArchitecturePayload,
     DesignPayload,
-    NetworkPayload,
-    PerformancePayload,
     Section,
     SectionMeta,
     SectionSet,
     SecurityPayload,
-    SeoPayload,
     TechnologyPayload,
+    TrafficPayload,
 )
 from weblens.logging import get_logger, stage_context
 from weblens.orchestration import registry
 from weblens.orchestration.job_store import Job
 from weblens.orchestration.progress import ProgressChannel
 from weblens.orchestration.registry import AnalyzerEntry
+from weblens.research.base import NullSearchProvider, SearchProvider, execute_research
 from weblens.utils.timing import Stopwatch, utc_now
 
 logger = get_logger(__name__)
@@ -70,11 +76,7 @@ _PAYLOAD_TYPES: dict[SectionKey, type] = {
     SectionKey.DESIGN: DesignPayload,
     SectionKey.TECHNOLOGY: TechnologyPayload,
     SectionKey.SECURITY: SecurityPayload,
-    SectionKey.PERFORMANCE: PerformancePayload,
-    SectionKey.ACCESSIBILITY: AccessibilityPayload,
-    SectionKey.SEO: SeoPayload,
-    SectionKey.ARCHITECTURE: ArchitecturePayload,
-    SectionKey.NETWORK: NetworkPayload,
+    SectionKey.TRAFFIC: TrafficPayload,
 }
 
 
@@ -91,10 +93,52 @@ class _SectionAccumulator:
         return cls(findings=[], interpretations=[], runs=[], limitations=[])
 
 
+def _merge_payload(current: object | None, incoming: object) -> object:
+    """Merge partial payloads emitted by analyzers assigned to the same V2 section.
+
+    Payload models use defaults for fields owned by other analyzers, so only explicitly set
+    fields participate. Lists accumulate in analyzer order with equality-based de-duplication;
+    boolean capability flags are monotonic; and a later explicit ``None`` never erases an
+    observation already produced by another analyzer.
+    """
+    if current is None:
+        return incoming
+    if not isinstance(current, BaseModel) or not isinstance(incoming, BaseModel):
+        raise TypeError("section payload fragments must be Pydantic models")
+    if type(current) is not type(incoming):
+        raise TypeError(
+            f"cannot merge section payloads {type(current).__name__} and {type(incoming).__name__}"
+        )
+
+    merged = current.model_dump(exclude_unset=True)
+    for field, value in incoming.model_dump(exclude_unset=True).items():
+        existing = merged.get(field)
+        if isinstance(existing, list) and isinstance(value, list):
+            combined = list(existing)
+            combined.extend(item for item in value if item not in combined)
+            merged[field] = combined
+        elif isinstance(existing, dict) and isinstance(value, dict):
+            merged[field] = {**existing, **value}
+        elif isinstance(existing, bool) and isinstance(value, bool):
+            merged[field] = existing or value
+        elif value is not None or field not in merged:
+            merged[field] = value
+
+    return type(current).model_validate(merged)
+
+
 class ScanPipeline:
-    def __init__(self, settings: Settings, collector: Collector) -> None:
+    def __init__(
+        self,
+        settings: Settings,
+        collector: Collector,
+        search_provider: SearchProvider | None = None,
+        inference_provider: InferenceProvider | None = None,
+    ) -> None:
         self._settings = settings
         self._collector = collector
+        self._search_provider = search_provider or NullSearchProvider()
+        self._inference_provider = inference_provider or NullInferenceProvider()
 
     async def run(self, job: Job, target: NormalizedTarget) -> AnalysisResult:
         """Execute the pipeline. Collection failures raise; analyzer failures are recorded."""
@@ -112,10 +156,19 @@ class ScanPipeline:
         sections, analyzer_errors = await self._analyze(evidence, job.options, channel)
         errors.extend(analyzer_errors)
 
+        # --- Research phase (optional) ---
+        await self._run_research(evidence, target, channel)
+
+        # --- AI Inference phase (optional) ---
+        inference_findings = await self._run_inference(evidence, sections, channel)
+        if inference_findings:
+            # Route AI findings to the correct sections based on question ID
+            sections = self._merge_inference_findings(sections, inference_findings)
+
         with stage_context(StageKey.ASSEMBLE.value):
             await channel.finalize_pending(
                 f"Not run by the {self._collector.collection_mode} collector.",
-                exclude=(StageKey.ASSEMBLE,),
+                exclude=(StageKey.ASSEMBLE, StageKey.RESEARCH, StageKey.INFERENCE),
             )
             await channel.stage_started(StageKey.ASSEMBLE)
             status = (
@@ -123,9 +176,6 @@ class ScanPipeline:
                 if errors or _any_section_degraded(sections)
                 else ScanStatus.COMPLETED
             )
-            # Close the stage before snapshotting the stage list: the remaining work is building
-            # the envelope below, and a result that reports its own assemble stage as still
-            # "running" forever would be a permanent lie in stored data.
             await channel.stage_completed(StageKey.ASSEMBLE)
             result = AnalysisResult(
                 scan=ScanMetadata(
@@ -141,11 +191,144 @@ class ScanPipeline:
                 ),
                 target=self._target_info(target, evidence, outcome.redirect_chain),
                 sections=sections,
+                quality=assess_quality(sections),
                 errors=errors,
                 screenshots=self._screenshots(evidence),
                 limitations=[*SCAN_LIMITATIONS, *_collection_mode_limitations(outcome.run_context)],
             )
         return result
+
+    # --- research phase ----------------------------------------------------------------
+
+    async def _run_research(
+        self,
+        evidence: RawEvidence,
+        target: NormalizedTarget,
+        channel: ProgressChannel,
+    ) -> None:
+        """Execute public research. Results are stored on evidence.research slot."""
+        with stage_context(StageKey.RESEARCH.value):
+            await channel.stage_started(StageKey.RESEARCH)
+            try:
+                observation = await execute_research(self._search_provider, target.host)
+                # Mutate evidence to attach research results for downstream use.
+                object.__setattr__(evidence, "research", observation)
+            except Exception as exc:
+                logger.warning("research phase failed", extra={"error": str(exc)[:200]})
+            await channel.stage_completed(StageKey.RESEARCH)
+
+    # --- AI inference phase ------------------------------------------------------------
+
+    async def _run_inference(
+        self,
+        evidence: RawEvidence,
+        sections: SectionSet,
+        channel: ProgressChannel,
+    ) -> list[Finding]:
+        """Run AI inference over existing findings and research. Returns new findings."""
+        if not self._inference_provider.is_available:
+            with stage_context(StageKey.INFERENCE.value):
+                await channel.stage_started(StageKey.INFERENCE)
+                await channel.stage_completed(StageKey.INFERENCE)
+            return []
+
+        with stage_context(StageKey.INFERENCE.value):
+            await channel.stage_started(StageKey.INFERENCE)
+            try:
+                questions = self._build_inference_questions(sections)
+                evidence_summary = self._build_evidence_summary(evidence, sections)
+                results = await self._inference_provider.infer(
+                    questions, evidence_summary, evidence.research
+                )
+                findings = claims_to_findings(results)
+            except Exception as exc:
+                logger.warning("inference phase failed", extra={"error": str(exc)[:200]})
+                findings = []
+            await channel.stage_completed(StageKey.INFERENCE)
+        return findings
+
+    def _build_inference_questions(self, sections: SectionSet) -> list[InferenceQuestion]:
+        """Build questions for AI based on what's already known.
+
+        During normal scan, only asks about technology gaps (backend, architecture)
+        since these are the most common areas where deterministic detection is weak.
+        The full intelligence fallback (user-triggered) covers all four sections.
+        """
+        questions = []
+        tech_findings = sections.technology.findings
+        detected_tech = [f.name for f in tech_findings if f.is_asserted]
+        tech_context = f"Detected technologies: {', '.join(detected_tech[:20])}"
+
+        questions.append(
+            InferenceQuestion(
+                id="tech:backend_technology",
+                question="Based on the observable evidence (headers, API patterns, response "
+                "characteristics), what backend technology or server-side framework "
+                "is most likely in use? If not publicly determinable, say so.",
+                context=tech_context,
+                section="technology",
+            )
+        )
+        questions.append(
+            InferenceQuestion(
+                id="tech:architecture_pattern",
+                question="What architecture patterns (microservices, monolith, JAMstack, "
+                "serverless, etc.) are strongly supported by the evidence?",
+                context=tech_context,
+                section="technology",
+            )
+        )
+        return questions
+
+    @staticmethod
+    def _build_evidence_summary(evidence: RawEvidence, sections: SectionSet) -> dict[str, object]:
+        """Build a condensed evidence summary for the inference engine."""
+        return {
+            "host": evidence.target.host,
+            "http_headers": (
+                {h.name: h.value for h in (evidence.http.headers if evidence.http else [])}
+            ),
+            "technology_findings": [
+                {"name": f.name, "status": f.status.value}
+                for f in sections.technology.findings
+                if f.is_asserted
+            ],
+            "has_research": evidence.research is not None
+            and evidence.research.results is not None
+            and len(evidence.research.results) > 0,
+        }
+
+    @staticmethod
+    def _merge_inference_findings(sections: SectionSet, findings: list[Finding]) -> SectionSet:
+        """Route AI findings to the correct section based on the question ID prefix.
+
+        Question IDs follow the pattern 'section:topic' (e.g. 'tech:backend_technology').
+        Findings carry the question ID in their own ID.
+        """
+        # Group findings by target section
+        by_section: dict[SectionKey, list[Finding]] = {key: [] for key in SectionKey}
+
+        for finding in findings:
+            fid = finding.id
+            if "design:" in fid or "design_" in fid:
+                by_section[SectionKey.DESIGN].append(finding)
+            elif "security:" in fid or "security_" in fid:
+                by_section[SectionKey.SECURITY].append(finding)
+            elif "traffic:" in fid or "traffic_" in fid:
+                by_section[SectionKey.TRAFFIC].append(finding)
+            else:
+                # Default: technology (covers 'tech:' prefix and legacy IDs)
+                by_section[SectionKey.TECHNOLOGY].append(finding)
+
+        # Build updates only for sections that received new findings
+        updates: dict[str, object] = {}
+        for key, new_findings in by_section.items():
+            if new_findings:
+                section = getattr(sections, key.value)
+                combined = list(section.findings) + new_findings
+                updates[key.value] = section.model_copy(update={"findings": combined})
+
+        return sections.model_copy(update=updates) if updates else sections
 
     # --- analysis ----------------------------------------------------------------------
 
@@ -173,7 +356,7 @@ class ScanPipeline:
                     accumulator.interpretations.extend(output.interpretations)
                     accumulator.limitations.extend(output.limitations)
                     if output.data is not None:
-                        accumulator.data = output.data
+                        accumulator.data = _merge_payload(accumulator.data, output.data)
                     for finding in output.findings:
                         produced[finding.id] = finding
 
@@ -272,11 +455,7 @@ class ScanPipeline:
             design=self._build_section(SectionKey.DESIGN, accumulators, requested),
             technology=self._build_section(SectionKey.TECHNOLOGY, accumulators, requested),
             security=self._build_section(SectionKey.SECURITY, accumulators, requested),
-            performance=self._build_section(SectionKey.PERFORMANCE, accumulators, requested),
-            accessibility=self._build_section(SectionKey.ACCESSIBILITY, accumulators, requested),
-            seo=self._build_section(SectionKey.SEO, accumulators, requested),
-            architecture=self._build_section(SectionKey.ARCHITECTURE, accumulators, requested),
-            network=self._build_section(SectionKey.NETWORK, accumulators, requested),
+            traffic=self._build_section(SectionKey.TRAFFIC, accumulators, requested),
         )
 
     def _build_section(

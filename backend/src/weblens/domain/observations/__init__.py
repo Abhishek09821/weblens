@@ -27,6 +27,7 @@ from weblens.domain.observations.page import (
     StyleValueCount,
     ViewportMetrics,
 )
+from weblens.domain.observations.research import ResearchObservation, ResearchRef
 from weblens.domain.observations.transport import (
     CertificateObservation,
     CookieAttributes,
@@ -62,6 +63,8 @@ __all__ = [
     "NetworkRequestRecord",
     "Observation",
     "PerformanceObservation",
+    "ResearchObservation",
+    "ResearchRef",
     "RobotsObservation",
     "RuntimeObservation",
     "SampleCoverage",

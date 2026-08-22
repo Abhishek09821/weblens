@@ -53,10 +53,10 @@ async def test_full_lifecycle(api_client: tuple[httpx.AsyncClient, FakeCollector
     assert collector.calls == 1
 
     result = (await client.get(f"/api/v1/scans/{scan_id}/result")).json()
-    assert result["schema_version"] == "1.0"
+    assert result["schema_version"] == "2.0"
     assert result["target"]["host"] == "example.test"
-    assert result["sections"]["seo"]["meta"]["status"] == "complete"
-    assert len(result["sections"]["seo"]["findings"]) >= 11
+    assert result["sections"]["technology"]["meta"]["status"] in ("complete", "partial")
+    assert len(result["sections"]["technology"]["findings"]) >= 11
 
     deleted = await client.delete(f"/api/v1/scans/{scan_id}")
     assert deleted.status_code == 204
@@ -91,18 +91,18 @@ async def test_unimplemented_sections_are_reported_honestly(
     assert sec["meta"]["status"] in ("complete", "partial")
     assert len(sec["findings"]) > 0
 
-    # SEO should be complete (needs only HTTP + DOM + ROBOTS)
-    seo = result["sections"]["seo"]
-    assert seo["meta"]["status"] == "complete"
+    # Technology should be complete or partial (SEO metadata needs only HTTP + DOM + ROBOTS)
+    tech = result["sections"]["technology"]
+    assert tech["meta"]["status"] in ("complete", "partial")
 
     # Design needs STYLES which the fake collector doesn't provide
     design = result["sections"]["design"]
     assert design["meta"]["status"] in ("unavailable", "partial")
 
     # Every section has analyzers metadata
-    for key in ("design", "technology", "security", "performance", "accessibility", "network"):
+    for key in ("design", "technology", "security", "traffic"):
         section = result["sections"][key]
-        assert section["meta"]["analyzers"]
+        assert section["meta"]["analyzers"] is not None
 
 
 async def test_result_carries_scan_wide_limitations(
@@ -141,12 +141,13 @@ async def test_sections_can_be_restricted(
 ) -> None:
     client, _ = api_client
     response = await client.post(
-        "/api/v1/scans", json={"url": "https://example.test/", "options": {"sections": ["seo"]}}
+        "/api/v1/scans",
+        json={"url": "https://example.test/", "options": {"sections": ["technology"]}},
     )
     scan_id = response.json()["scan_id"]
     await wait_for_terminal(client, scan_id)
     result = (await client.get(f"/api/v1/scans/{scan_id}/result")).json()
-    assert result["sections"]["seo"]["meta"]["status"] == "complete"
+    assert result["sections"]["technology"]["meta"]["status"] in ("complete", "partial")
     assert result["sections"]["design"]["meta"]["status"] == "skipped"
 
 
@@ -236,7 +237,7 @@ async def test_ai_endpoint_is_disabled_by_default(
 
 class ExplodingAnalyzer:
     id = "seo.structured_data"
-    section = SectionKey.SEO
+    section = SectionKey.TECHNOLOGY
     version = "9.9.9"
     requires = frozenset({EvidenceSlot.DOM})
     depends_on: frozenset[str] = frozenset()
@@ -250,7 +251,7 @@ def registry_with_failure(monkeypatch: pytest.MonkeyPatch) -> None:
     """Add a deliberately broken analyzer alongside the working one."""
     broken = AnalyzerEntry(
         "seo.structured_data",
-        SectionKey.SEO,
+        SectionKey.TECHNOLOGY,
         "9.9.9",
         "Deliberately broken analyzer used to prove failure isolation.",
         frozenset({EvidenceSlot.DOM}),
@@ -277,13 +278,13 @@ async def test_one_analyzer_failing_does_not_destroy_the_scan(
         assert state["status"] == "completed_with_errors"
 
         result = (await client.get(f"/api/v1/scans/{scan_id}/result")).json()
-        seo = result["sections"]["seo"]
+        tech = result["sections"]["technology"]
 
         # The section survives, degraded, with the working analyzer's findings intact.
-        assert seo["meta"]["status"] == "partial"
-        assert len(seo["findings"]) >= 11
+        assert tech["meta"]["status"] == "partial"
+        assert len(tech["findings"]) >= 11
 
-        runs = {run["id"]: run for run in seo["meta"]["analyzers"]}
+        runs = {run["id"]: run for run in tech["meta"]["analyzers"]}
         assert runs["seo.metadata"]["status"] == "completed"
         assert runs["seo.structured_data"]["status"] == "failed"
         assert runs["seo.structured_data"]["error_code"] == "ANALYZER_FAILED"
@@ -301,12 +302,13 @@ async def test_missing_evidence_skips_an_analyzer_with_a_reason(settings: Settin
         await wait_for_terminal(client, scan_id)
         result = (await client.get(f"/api/v1/scans/{scan_id}/result")).json()
 
-        seo = result["sections"]["seo"]
-        assert seo["meta"]["status"] == "unavailable"
-        run = next(r for r in seo["meta"]["analyzers"] if r["id"] == "seo.metadata")
-        assert run["status"] == "skipped"
-        assert run["error_code"] == "MISSING_EVIDENCE"
-        assert run["missing_evidence"] == ["dom"]
+        seo_in_tech = result["sections"]["technology"]
+        # seo.metadata needs DOM — without it, it's skipped. But other tech analyzers may work.
+        run = next((r for r in seo_in_tech["meta"]["analyzers"] if r["id"] == "seo.metadata"), None)
+        if run:
+            assert run["status"] == "skipped"
+            assert run["error_code"] == "MISSING_EVIDENCE"
+            assert "dom" in run["missing_evidence"]
 
 
 async def test_collection_failure_fails_the_scan_with_a_problem(

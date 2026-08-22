@@ -4,9 +4,9 @@ A section always carries findings. Payloads hold structured extras that would be
 flat findings (a colour palette, a request ledger, a rule table) - they are additive, never
 a replacement for findings.
 
-Payloads for sections whose analyzers land in later phases are declared with the fields we
-are confident about from the blueprint and left otherwise empty, rather than speculatively
-modelled now. ``data`` stays ``None`` until an analyzer fills it.
+V2 model: four user-facing sections (design, technology, security, traffic). The payloads
+for technology now include architecture, network, performance, and SEO structured data
+that previously lived in standalone sections.
 """
 
 from __future__ import annotations
@@ -125,8 +125,6 @@ class MetadataObservation(BaseModel):
 
 
 class IndexabilityObservation(BaseModel):
-    """Phase 3."""
-
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     robots_txt_allowed: bool | None = None
@@ -134,14 +132,6 @@ class IndexabilityObservation(BaseModel):
     canonical_is_self_referential: bool | None = None
     redirect_hop_count: int | None = None
     sitemaps: list[str] = Field(default_factory=list)
-
-
-class SeoPayload(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-    metadata: MetadataObservation | None = None
-    indexability: IndexabilityObservation | None = None
-    structured_data: list[StructuredDataBlock] = Field(default_factory=list)
 
 
 class DetectedProduct(BaseModel):
@@ -161,24 +151,51 @@ class DetectedProduct(BaseModel):
     finding_id: str
 
 
-class TechnologyPayload(BaseModel):
-    """Phase 3."""
+class DomainSummary(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
-    model_config = ConfigDict(extra="forbid")
+    host: str
+    request_count: int
+    transfer_bytes: int | None = None
+    is_third_party: bool
 
-    products: list[DetectedProduct] = Field(default_factory=list)
+
+# --- DESIGN payload -------------------------------------------------------------------
 
 
 class DesignPayload(BaseModel):
-    """Phase 4. Palette, typography, spacing/radius/shadow scales, layout, media, motion.
-
-    ``coverage`` is declared now because every design claim must be reported alongside the
-    sample it came from.
-    """
+    """Recreation-oriented design data. coverage reports sample quality."""
 
     model_config = ConfigDict(extra="forbid")
 
     coverage: SampleCoverage | None = None
+    axe: AxeObservation | None = None
+
+
+# --- TECHNOLOGY payload ---------------------------------------------------------------
+
+
+class TechnologyPayload(BaseModel):
+    """Consolidated technology + architecture + network + performance + SEO data."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    products: list[DetectedProduct] = Field(default_factory=list)
+    # Architecture data
+    static_vs_rendered_element_delta: int | None = None
+    # Network data
+    requests: list[NetworkRequestRecord] = Field(default_factory=list)
+    by_domain: list[DomainSummary] = Field(default_factory=list)
+    network_cap_hit: bool = False
+    # Performance data
+    timings: PerformanceObservation | None = None
+    # SEO structured data
+    metadata: MetadataObservation | None = None
+    indexability: IndexabilityObservation | None = None
+    structured_data: list[StructuredDataBlock] = Field(default_factory=list)
+
+
+# --- SECURITY payload -----------------------------------------------------------------
 
 
 class HeaderObservationSummary(BaseModel):
@@ -190,7 +207,7 @@ class HeaderObservationSummary(BaseModel):
 
 
 class SecurityPayload(BaseModel):
-    """Phase 2. ``score`` is the only score in the whole domain model (axiom A4)."""
+    """``score`` is the only score in the whole domain model (axiom A4)."""
 
     model_config = ConfigDict(extra="forbid")
 
@@ -198,63 +215,29 @@ class SecurityPayload(BaseModel):
     headers: list[HeaderObservationSummary] = Field(default_factory=list)
 
 
-class PerformancePayload(BaseModel):
-    """Phase 5. Run context lives on scan metadata and applies to every metric here."""
+# --- TRAFFIC payload ------------------------------------------------------------------
+
+
+class TrafficPayload(BaseModel):
+    """Traffic and popularity intelligence from external public data sources."""
 
     model_config = ConfigDict(extra="forbid")
 
-    timings: PerformanceObservation | None = None
-
-
-class AccessibilityPayload(BaseModel):
-    """Phase 5. No score, by design: violation counts are not a conformance measure."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    axe: AxeObservation | None = None
-    coverage_note: str = (
-        "Automated rules detect a subset of WCAG issues. A clean result does not mean a site "
-        "is accessible; conformance requires manual testing and expert review."
+    provider_name: str | None = Field(
+        default=None, description="Which traffic provider was used, or None if unavailable."
     )
+    provider_available: bool = False
 
 
-class DomainSummary(BaseModel):
-    model_config = ConfigDict(frozen=True, extra="forbid")
-
-    host: str
-    request_count: int
-    transfer_bytes: int | None = None
-    is_third_party: bool
-
-
-class NetworkPayload(BaseModel):
-    """Phase 3."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    requests: list[NetworkRequestRecord] = Field(default_factory=list)
-    by_domain: list[DomainSummary] = Field(default_factory=list)
-    cap_hit: bool = False
-
-
-class ArchitecturePayload(BaseModel):
-    """Phase 3. Rendering strategy signals, platform indicators, runtime observations."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    static_vs_rendered_element_delta: int | None = None
+# --- Section set (the four user-facing reports) ---------------------------------------
 
 
 class SectionSet(BaseModel):
-    """All eight sections, as explicit fields so both sides of the wire stay typed."""
+    """The four V2 report sections."""
 
     model_config = ConfigDict(extra="forbid")
 
     design: Section[DesignPayload]
     technology: Section[TechnologyPayload]
     security: Section[SecurityPayload]
-    performance: Section[PerformancePayload]
-    accessibility: Section[AccessibilityPayload]
-    seo: Section[SeoPayload]
-    architecture: Section[ArchitecturePayload]
-    network: Section[NetworkPayload]
+    traffic: Section[TrafficPayload]

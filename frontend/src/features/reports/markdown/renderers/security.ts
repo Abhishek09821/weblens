@@ -1,95 +1,107 @@
-import { securityScoreSchema } from '@/types/analysis';
+import { findingStatusLabel } from '@/lib/format/status';
+import { securityPayloadSchema, type Finding } from '@/types/analysis';
+import { findingStatusToVerdict, verdictLabel } from '@/types/analysis';
 
 import { blockquote, bullets, heading, keyValueTable, section as join, table } from '../kit';
-import { standardDocument, type RenderContext } from '../shared';
+import { aiVerdictBlock, evidenceQualityBlock, standardDocument, type RenderContext } from '../shared';
 
 /**
- * Security report.
+ * Security Analysis report matching the spec template.
  *
- * The score is the only score WebLens produces, and it only earns that place by being auditable:
- * the rule table, the excluded rules, and the band caps are all printed, so a reader can
- * reconstruct the number and see exactly what was and was not evaluated.
- *
- * The disclaimer comes from the payload rather than being written here, so the API, the UI, and
- * this report cannot drift into saying different things.
+ * The score is the only score WebLens produces. The disclaimer clearly states that passive
+ * observations cannot establish complete security.
  */
 export function renderSecurity(ctx: RenderContext): string {
-  const data = ctx.section.data;
-  const scoreValue =
-    data && typeof data === 'object' ? (data as { score?: unknown }).score : undefined;
-  const parsed = securityScoreSchema.safeParse(scoreValue);
+  const parsed = securityPayloadSchema.safeParse(ctx.section.data);
+  const score = parsed.success ? parsed.data.score : null;
+  const findings = ctx.section.findings;
+  const deterministic = findings.filter((f) => f.status !== 'ai_inferred');
+  const aiFindings = findings.filter((f) => f.status === 'ai_inferred');
 
-  if (!parsed.success) {
-    return standardDocument(
-      ctx,
-      'Security',
-      join(
-        heading(2, 'Observable Security Posture'),
-        'No posture score was produced for this scan.',
-        bullets([
-          'A score is only emitted when enough rules could be evaluated to make the ratio meaningful.',
-          'The findings below still describe what was observed.',
-        ]),
-      ),
-    );
-  }
+  // Group deterministic findings by category
+  const tlsFindings = deterministic.filter((f) => f.source === 'security.tls');
+  const headerFindings = deterministic.filter((f) => f.source === 'security.headers');
+  const cookieFindings = deterministic.filter((f) => f.source === 'security.cookies');
+  const mixedContent = deterministic.filter((f) => f.source === 'security.mixed_content');
+  const exposure = deterministic.filter((f) => f.source === 'security.exposure');
+  const thirdParty = deterministic.filter((f) => f.source === 'security.third_party');
 
-  const score = parsed.data;
-  const rows = [...score.rules]
-    .sort((a, b) => b.weight - a.weight || a.id.localeCompare(b.id))
-    .map((rule) => [
-      rule.id,
-      rule.title,
-      rule.category,
-      rule.outcome,
-      `${rule.awarded} / ${rule.weight}`,
-      rule.rationale,
-      rule.recommendation ?? '',
-    ]);
-
-  const scoreBlock = join(
-    heading(2, score.label),
-    blockquote(score.disclaimer),
-    keyValueTable([
-      ['Score', `${score.percentage}%`],
-      ['Points awarded', score.points_awarded],
-      ['Points applicable', score.points_applicable],
-      ['Band', score.band_phrase],
-      ['Methodology version', score.methodology_version],
-    ]),
+  const disclaimerBlock = blockquote(
+    'This is an externally observable assessment and is not proof of complete application security. ' +
+    'No forms were submitted, no authentication was attempted, and no access controls were tested.',
   );
 
-  const capsBlock =
-    score.applied_caps.length > 0
-      ? join(
-          heading(3, 'Band caps applied'),
-          'A dominant observation limited the band regardless of the percentage.',
-          table(
-            ['Rule', 'Band ceiling', 'Reason'],
-            score.applied_caps.map((cap) => [cap.rule_id, cap.cap, cap.reason]),
-          ),
-        )
-      : '';
+  const postureBlock = score
+    ? join(
+        heading(2, 'Observable Security Posture'),
+        disclaimerBlock,
+        keyValueTable([
+          ['Score', `${score.percentage}%`],
+          ['Band', score.band_phrase],
+          ['Points', `${score.points_awarded} / ${score.points_applicable}`],
+          ['Methodology', score.methodology_version],
+        ]),
+      )
+    : join(
+        heading(2, 'Observable Security Posture'),
+        disclaimerBlock,
+        'No posture score was produced. Individual observations are listed below.',
+      );
 
-  const excludedBlock =
-    score.excluded_rules.length > 0
-      ? join(
-          heading(3, 'Rules excluded from the score'),
-          'These rules were left out of both the numerator and the denominator, so the ratio is auditable.',
-          table(
-            ['Rule', 'Outcome', 'Reason'],
-            score.excluded_rules.map((rule) => [rule.id, rule.outcome, rule.reason]),
-          ),
-        )
-      : '';
+  const rulesBlock = score && score.rules.length > 0
+    ? join(
+        heading(3, 'Rule Results'),
+        table(
+          ['Rule', 'Title', 'Category', 'Outcome', 'Points', 'Recommendation'],
+          [...score.rules]
+            .sort((a, b) => b.weight - a.weight)
+            .map((rule) => [
+              rule.id,
+              rule.title,
+              rule.category,
+              rule.outcome,
+              `${rule.awarded} / ${rule.weight}`,
+              rule.recommendation ?? '',
+            ]),
+        ),
+      )
+    : '';
 
-  const rulesBlock = join(
-    heading(3, 'Rule results'),
+  return standardDocument(
+    ctx,
+    'Security Analysis',
+    evidenceQualityBlock(ctx.result, 'security'),
+    postureBlock,
+    rulesBlock,
+    findingsGroup('TLS', tlsFindings),
+    findingsGroup('Security Headers', headerFindings),
+    findingsGroup('Cookies', cookieFindings),
+    findingsGroup('Mixed Content', mixedContent),
+    findingsGroup('Technology Disclosure', exposure),
+    findingsGroup('Third-Party Scripts', thirdParty),
+    aiVerdictBlock(aiFindings, 'AI / Research Verdicts'),
+  );
+}
+
+function findingsGroup(title: string, findings: Finding[]): string {
+  if (findings.length === 0) return '';
+  return join(
+    heading(2, title),
     table(
-      ['Rule', 'Title', 'Category', 'Outcome', 'Points', 'Rationale', 'Recommendation'],
-      rows,
+      ['Observation', 'Verdict', 'Value', 'Notes'],
+      findings.map((f) => [
+        f.name,
+        verdictLabel(findingStatusToVerdict(f.status)),
+        renderValue(f),
+        f.reason ?? '',
+      ]),
     ),
   );
+}
 
-  return standardDocument(ctx, 'Security', scoreBlock, capsBlock, excludedBlock, rulesBlock);
+function renderValue(finding: Finding): string {
+  if (finding.value !== null && finding.value !== undefined) {
+    return typeof finding.value === 'boolean' ? (finding.value ? 'yes' : 'no') : String(finding.value);
+  }
+  return finding.values.length > 0 ? finding.values.join(', ') : '—';
 }

@@ -21,7 +21,7 @@ class PerformanceResourcesAnalyzer:
     """Resource count and size analysis from network observations."""
 
     id = ANALYZER_ID
-    section = SectionKey.PERFORMANCE
+    section = SectionKey.TECHNOLOGY
     version = "1.0.0"
     requires = frozenset({EvidenceSlot.NETWORK})
     depends_on: frozenset[str] = frozenset()

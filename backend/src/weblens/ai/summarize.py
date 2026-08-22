@@ -58,7 +58,7 @@ def get_groq_key() -> str | None:
                         val = line.split("=", 1)[1].strip().strip('"').strip("'")
                         if val and not val.startswith("gsk_your_"):
                             return val
-    except Exception:
+    except Exception:  # noqa: S110 - intentional: .env discovery is best-effort
         pass
     return None
 
@@ -167,14 +167,6 @@ def _build_prompt(data: dict[str, Any]) -> str:
                 parts.append(f"  {key}: {val}")
         parts.append("")
 
-    # Accessibility
-    a11y = data.get("accessibility", {})
-    if a11y.get("issues"):
-        parts.append("ACCESSIBILITY ISSUES:")
-        for issue in a11y["issues"]:
-            parts.append(f"  - {issue}")
-        parts.append("")
-
     # Architecture
     arch = data.get("architecture", {})
     if arch:
@@ -185,6 +177,14 @@ def _build_prompt(data: dict[str, Any]) -> str:
             parts.append(f"  Infrastructure: {', '.join(arch['infrastructure'])}")
         parts.append("")
 
+    # Traffic
+    traffic = data.get("traffic", [])
+    if traffic:
+        parts.append("TRAFFIC/ANALYTICS:")
+        for item in traffic[:10]:
+            parts.append(f"  - {item.get('name')}: {item.get('status')}")
+        parts.append("")
+
     return "\n".join(parts)
 
 
@@ -193,16 +193,18 @@ def build_summary_input(result_dict: dict[str, Any]) -> dict[str, Any]:
 
     This is what gets sent to the AI — only verified/inferred findings,
     never raw evidence or internal implementation details.
+
+    V2: All findings live under 4 sections (design, technology, security, traffic).
     """
     sections = result_dict.get("sections", {})
     target = result_dict.get("target", {})
 
-    # Technology
+    # Technology (now includes architecture, network, performance, SEO findings)
     tech_findings = sections.get("technology", {}).get("findings", [])
     tech_items = [
         {"name": f["name"], "status": f["status"], "value": f.get("value")}
         for f in tech_findings
-        if f["status"] in ("verified", "inferred")
+        if f["status"] in ("verified", "strongly_inferred", "inferred")
     ]
 
     # Security
@@ -232,34 +234,28 @@ def build_summary_input(result_dict: dict[str, Any]) -> dict[str, Any]:
         if f["id"] == "design.layout:display-types" and f.get("values"):
             design["layout"] = f["values"][:5]
 
-    # Performance
-    perf_findings = sections.get("performance", {}).get("findings", [])
-    perf = {}
-    for f in perf_findings:
-        if f["status"] == "verified" and f.get("value") is not None:
-            perf[f["name"]] = f"{f['value']} {f.get('unit', '')}".strip()
-
-    # Accessibility
-    a11y_findings = sections.get("accessibility", {}).get("findings", [])
-    a11y_issues = []
-    for f in a11y_findings:
-        if f["status"] == "verified" and f.get("value") and f["id"] not in (
-            "accessibility.axe:violation-count", "accessibility.axe:violations-by-impact"
-        ):
-            a11y_issues.append(f"{f['name']}: {f['value']}")
-
-    # Architecture
-    arch_findings = sections.get("architecture", {}).get("findings", [])
+    # Extract architecture/performance from technology findings (for summary context)
     arch: dict[str, Any] = {}
-    for f in arch_findings:
+    perf: dict[str, Any] = {}
+    for f in tech_findings:
         if f["id"] == "architecture.rendering:rendering-strategy" and f.get("value"):
             arch["rendering"] = str(f["value"])
-    infra = []
-    for f in arch_findings:
         if f["source"] == "architecture.platform" and f.get("detected"):
-            infra.append(str(f.get("value", f["name"])))
-    if infra:
-        arch["infrastructure"] = infra
+            arch.setdefault("infrastructure", []).append(str(f.get("value", f["name"])))
+        if (
+            f["source"] in ("performance.timings", "performance.resources")
+            and f["status"] == "verified"
+            and f.get("value") is not None
+        ):
+            perf[f["name"]] = f"{f['value']} {f.get('unit', '')}".strip()
+
+    # Traffic
+    traffic_findings = sections.get("traffic", {}).get("findings", [])
+    traffic = [
+        {"name": f["name"], "status": f["status"], "value": f.get("value")}
+        for f in traffic_findings
+        if f["status"] in ("verified", "strongly_inferred", "inferred")
+    ]
 
     return {
         "target": target,
@@ -267,6 +263,6 @@ def build_summary_input(result_dict: dict[str, Any]) -> dict[str, Any]:
         "security": security,
         "design": design,
         "performance": perf,
-        "accessibility": {"issues": a11y_issues},
         "architecture": arch,
+        "traffic": traffic,
     }

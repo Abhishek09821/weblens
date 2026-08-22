@@ -118,11 +118,11 @@ def test_non_complete_section_requires_a_reason(status: SectionStatus) -> None:
 
 
 def test_complete_section_needs_no_reason() -> None:
-    meta = SectionMeta(key=SectionKey.SEO, status=SectionStatus.COMPLETE)
+    meta = SectionMeta(key=SectionKey.DESIGN, status=SectionStatus.COMPLETE)
     assert meta.unavailable_reason is None
 
 
 def test_unknown_fields_are_rejected() -> None:
     """``extra='forbid'`` turns a typo into an error instead of a silently ignored field."""
     with pytest.raises(ValidationError):
-        SectionMeta(key=SectionKey.SEO, status=SectionStatus.COMPLETE, typo=True)  # type: ignore[call-arg]
+        SectionMeta(key=SectionKey.DESIGN, status=SectionStatus.COMPLETE, typo=True)  # type: ignore[call-arg]
