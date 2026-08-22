@@ -16,10 +16,12 @@ export function UrlForm({
   onSubmit,
   disabled = false,
   externalError,
+  prominent = false,
 }: {
   onSubmit: (url: string) => void;
   disabled?: boolean;
   externalError?: string;
+  prominent?: boolean;
 }) {
   const [value, setValue] = useState('');
   const [touched, setTouched] = useState(false);
@@ -59,7 +61,13 @@ export function UrlForm({
       }}
       className="space-y-2"
     >
-      <label htmlFor={inputId} className="block text-sm font-medium">
+      <label
+        htmlFor={inputId}
+        className={cn(
+          'block text-sm font-medium',
+          prominent && 'text-xs tracking-[0.12em] text-muted-foreground uppercase',
+        )}
+      >
         Website URL
       </label>
       <div className="flex flex-col gap-2 sm:flex-row">
@@ -77,9 +85,17 @@ export function UrlForm({
           aria-describedby={cn(error ? errorId : undefined, hintId)}
           onChange={(event) => setValue(event.target.value)}
           onBlur={() => setTouched(true)}
-          className="font-mono sm:flex-1"
+          className={cn(
+            'font-mono sm:flex-1',
+            prominent && 'h-12 rounded-lg bg-card/70 px-4 text-base shadow-xs',
+          )}
         />
-        <Button type="submit" disabled={disabled} className="sm:w-36">
+        <Button
+          type="submit"
+          disabled={disabled}
+          size={prominent ? 'lg' : 'default'}
+          className={cn('sm:w-36', prominent && 'h-12 rounded-lg sm:w-40')}
+        >
           <SearchIcon className="size-4" />
           {disabled ? 'Analyzing…' : 'Analyze'}
         </Button>
